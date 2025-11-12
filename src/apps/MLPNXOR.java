@@ -49,7 +49,6 @@ public class MLPNXOR {
       double[] mse = mlp.train(trX, trY, lr, epochs);
       // Predict and output results
       Matrix pred = mlp.predict(evX);
-      System.out.println("Predictions:\n" + pred);
       // convert probabilities to integer classes: 0 or 1
       pred = pred.apply(new Step().fnc());
       // print output

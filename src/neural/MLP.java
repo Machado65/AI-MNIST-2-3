@@ -58,50 +58,26 @@ public class MLP {
       // delta = e .* yp[l+1] .* (1-yp[l+1])
       delta.set(e.mult(this.yp[l1].apply(this.act[l].derivative())));
       // w[l] += yp[l]^T * delta * lr
-      this.w[l] = this.w[l].add(
-            this.yp[l].transpose().dot(delta).mult(lr));
+      this.w[l].addInPlace(this.yp[l].transpose().dot(delta).mult(lr));
       // b[l] += sum(delta) * lr
-      b[l] = b[l].addRowVector(delta.sumColumns().mult(lr));
+      b[l].addInPlaceRowVector(delta.sumColumns().mult(lr));
    }
 
-   // public Matrix backPropagation(Matrix y, double lr) {
-   // Matrix e = null;
-   // Matrix delta = null;// dummy initialization
-   // // back propagation using generalized delta rule
-   // int n = this.nLayers - 2;
-   // int n1 = n + 1;
-   // // e = y - yp[l+1](l == n)
-   // e = y.sub(this.yp[n1]);
-   // this.updateLayer(n, n1, delta, e, lr);
-   // for (int l = n - 1; l >= 0; --l) {
-   // int l1 = l + 1;
-   // // e = delta * w[l+1]^T
-   // e = delta.dot(this.w[l1].transpose());
-   // this.updateLayer(l, l1, delta, e, lr);
-   // }
-
-   // return e;
-   // }
-
    public Matrix backPropagation(Matrix y, double lr) {
-      Matrix e = null;
-      Matrix delta = null;
+      Matrix delta = new Matrix(0, 0);// dummy initialization
       // back propagation using generalized delta rule
       int n = this.nLayers - 2;
-      for (int l = n; l >= 0; --l) {
+      int n1 = n + 1;
+      // output layer
+      // e = y - yp[l+1]
+      Matrix e = y.sub(this.yp[n1]);
+      this.updateLayer(n, n1, delta, e, lr);
+      // hidden layers
+      for (int l = n - 1; l >= 0; --l) {
          int l1 = l + 1;
-         e = (l == n)
-               // e = y - yp[l+1](l == n)
-               ? y.sub(this.yp[l1])
-               // else e = delta * w[l+1]^T
-               : delta.dot(this.w[l1].transpose());
-         // delta = e .* yp[l+1] * (1-yp[l+1])
-         delta = e.mult(this.yp[l1].apply(this.act[l].derivative()));
-         // w[l] += yp[l]^T * delta * lr
-         this.w[l] = this.w[l].add(
-               this.yp[l].transpose().dot(delta).mult(lr));
-         // b[] += sum(delta) * lr
-         b[l] = b[l].addRowVector(delta.sumColumns().mult(lr));
+         // e = delta * w[l+1]^T
+         e = delta.dot(this.w[l1].transpose());
+         this.updateLayer(l, l1, delta, e, lr);
       }
       return e;
    }

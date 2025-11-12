@@ -287,8 +287,9 @@ public class Matrix {
    public String toIntString() {
       StringBuilder sb = new StringBuilder();
       for (int i = 0; i < this.rows; ++i) {
-         for (int j = 0; j < this.cols; ++j) {
-            sb.append((int) this.data[i][j]).append(" ");
+         sb.append((int) this.data[i][0]);
+         for (int j = 1; j < this.cols; ++j) {
+            sb.append(" ").append((int) this.data[i][j]);
          }
          sb.append("\n");
       }
@@ -299,8 +300,9 @@ public class Matrix {
    public String toString() {
       StringBuilder sb = new StringBuilder();
       for (int i = 0; i < this.rows; ++i) {
-         for (int j = 0; j < this.cols; ++j) {
-            sb.append(this.data[i][j]).append(" ");
+         sb.append((int) this.data[i][0]);
+         for (int j = 1; j < this.cols; ++j) {
+            sb.append(" ").append(this.data[i][j]);
          }
          sb.append("\n");
       }
