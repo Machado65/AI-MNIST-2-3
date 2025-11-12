@@ -6,7 +6,6 @@ import java.io.IOException;
 public class MSE {
    private MSE() {
       // Prevent instantiation
-      //
    }
 
    public static void saveMSE(double[] mse, String filename) {
