@@ -9,8 +9,20 @@ import neural.activation.Sigmoid;
 import neural.activation.Step;
 
 /**
+ * Application that trains a Multi-Layer Perceptron (MLP) to learn the XOR
+ * function.
+ * The XOR problem is a classic non-linearly separable problem that requires at
+ * least
+ * one hidden layer to solve.
+ *
+ * This program:
+ * - Trains an MLP with 2 input neurons, 2 hidden neurons, and 1 output neuron
+ * - Uses sigmoid activation functions for hidden and output layers
+ * - Reads test inputs from standard input
+ * - Outputs predictions, learned weights, biases, and saves MSE history
+ *
  * @author hdaniel@ualg.pt
- * @author Tomás Machado
+ * @author André Martins, António Matoso, Tomás Machado
  * @version 202511050300
  */
 public class MLPNXOR {
@@ -49,11 +61,26 @@ public class MLPNXOR {
       double[] mse = mlp.train(trX, trY, lr, epochs);
       // Predict and output results
       Matrix pred = mlp.predict(evX);
+      // System.out.println("Weights:");
+      // int layer = 1;
+      // for (Matrix w : mlp.getWeights()) {
+      // System.out.println("Layer " + layer + ":");
+      // System.out.print(w);
+      // layer++;
+      // }
+      // layer = 1;
+      // System.out.println("Biases:");
+      // for (Matrix b : mlp.getBiases()) {
+      // System.out.println("Layer " + layer + ":");
+      // System.out.print(b);
+      // layer++;
+      // }
       // convert probabilities to integer classes: 0 or 1
       pred = pred.apply(new Step().fnc());
       // print output
       // insert code here to print the pred Matrix as integers
       // …
+      // System.out.println("Predictions:");
       System.out.print(pred.toIntString());
       // MSE.saveMSE(mse, "mse.csv");
       sc.close();

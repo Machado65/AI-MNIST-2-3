@@ -4,8 +4,18 @@ import math.Matrix;
 import neural.activation.IDifferentiableFunction;
 
 /**
+ * Multi-Layer Perceptron (MLP) neural network implementation.
+ * This class provides a fully connected feedforward neural network with
+ * backpropagation
+ * training algorithm. It supports multiple hidden layers with customizable
+ * activation functions.
+ *
+ * The network uses the generalized delta rule for weight updates and can train
+ * on
+ * batch datasets using gradient descent.
+ *
  * @author hdaniel@ualg.pt
- * @author Tomás Machado
+ * @author André Martins, António Matoso, Tomás Machado
  * @version 202511052038
  */
 public class MLP {
@@ -16,9 +26,22 @@ public class MLP {
    private final int nLayers;
    private final int nLayers1;
 
-   /*
-    * PRE: layerSizes.length >= 2
-    * PRE: act.length == layerSizes.length - 1
+   /**
+    * Constructs a Multi-Layer Perceptron with specified architecture.
+    * Initializes weights and biases with random values using the provided seed.
+    *
+    * @param layerSizes array defining the number of neurons in each layer.
+    *                   First element is input size, last is output size.
+    *                   Must have at least 2 elements (input and output layers).
+    * @param act        array of activation functions for each layer (excluding
+    *                   input layer).
+    *                   Must have length equal to layerSizes.length - 1.
+    * @param seed       random seed for weight initialization; if negative, uses
+    *                   current time
+    * @throws IllegalArgumentException implicitly if preconditions are violated
+    *
+    * @pre layerSizes.length >= 2
+    * @pre act.length == layerSizes.length - 1
     */
    public MLP(int[] layerSizes, IDifferentiableFunction[] act, int seed) {
       if (seed < 0) {
@@ -40,19 +63,62 @@ public class MLP {
       }
    }
 
-   // Feed forward propagation
-   // also used to predict after training the net
-   // yp[0] = X
-   // yp[l+1] = Sigmoid(yp[l] * w[l]+b[l])
+   /**
+    * Returns the weight matrices for all layers.
+    * Each matrix w[i] contains weights connecting layer i to layer i+1.
+    * Each row represents the incoming weights to a neuron in the next layer.
+    *
+    * @return array of weight matrices
+    */
+   public Matrix[] getWeights() {
+      return this.w;
+   }
+
+   /**
+    * Returns the bias vectors for all layers.
+    * Each bias vector b[i] is a row vector (1 x n matrix) containing biases
+    * for neurons in layer i+1.
+    *
+    * @return array of bias matrices (row vectors)
+    */
+   public Matrix[] getBiases() {
+      return this.b;
+   }
+
+   /**
+    * Performs forward propagation through the network to make predictions.
+    * Also used during training to compute outputs for each layer.
+    *
+    * Algorithm:
+    * - yp[0] = X (input)
+    * - yp[l+1] = activation(yp[l] * w[l] + b[l]) for each layer l
+    *
+    * @param x input matrix where each row is a sample and each column is a feature
+    * @return output matrix with predictions (yp[nLayers-1])
+    */
    public Matrix predict(Matrix x) {
       this.yp[0] = x;
       for (int l = 0; l < this.nLayers1; ++l) {
-         yp[l + 1] = yp[l].dot(w[l]).addRowVector(b[l])
-               .apply(act[l].fnc());
+         this.yp[l + 1] = this.yp[l].dot(this.w[l]).addRowVector(this.b[l])
+               .apply(this.act[l].fnc());
       }
       return this.yp[this.nLayers - 1];
    }
 
+   /**
+    * Updates weights and biases for a specific layer using the delta rule.
+    *
+    * Computes:
+    * - delta = e .* yp[l+1] .* derivative(yp[l+1])
+    * - w[l] += yp[l]^T * delta * lr
+    * - b[l] += sum(delta) * lr
+    *
+    * @param l     the layer index to update
+    * @param l1    the next layer index (l + 1)
+    * @param delta matrix to store computed delta values (modified in place)
+    * @param e     error matrix for this layer
+    * @param lr    learning rate
+    */
    private void updateLayer(int l, int l1, Matrix delta, Matrix e,
          double lr) {
       // delta = e .* yp[l+1] .* (1-yp[l+1])
@@ -63,6 +129,22 @@ public class MLP {
       b[l].addInPlaceRowVector(delta.sumColumns().mult(lr));
    }
 
+   /**
+    * Performs backpropagation to compute and apply weight updates.
+    * Uses the generalized delta rule to propagate errors backward through the
+    * network
+    * and update weights and biases for all layers.
+    *
+    * Algorithm:
+    * 1. Compute error at output layer: e = y - yp[output]
+    * 2. Update output layer weights and biases
+    * 3. Propagate error backward: e = delta * w[l+1]^T
+    * 4. Update each hidden layer from last to first
+    *
+    * @param y  target output matrix (ground truth labels)
+    * @param lr learning rate for weight updates
+    * @return error matrix from the first hidden layer
+    */
    public Matrix backPropagation(Matrix y, double lr) {
       Matrix delta = new Matrix(0, 0);// dummy initialization
       // back propagation using generalized delta rule
@@ -82,6 +164,19 @@ public class MLP {
       return e;
    }
 
+   /**
+    * Trains the neural network using batch gradient descent with backpropagation.
+    * Performs forward propagation, backpropagation, and weight updates for each
+    * epoch.
+    * Computes and stores Mean Squared Error (MSE) for each epoch.
+    *
+    * @param x            training input matrix where each row is a sample
+    * @param y            training output matrix (target values) where each row
+    *                     corresponds to a sample
+    * @param learningRate learning rate for gradient descent (controls step size)
+    * @param epochs       number of training iterations over the entire dataset
+    * @return array of MSE values, one for each epoch
+    */
    public double[] train(Matrix x, Matrix y, double learningRate,
          int epochs) {
       int nSamples = x.rows();
