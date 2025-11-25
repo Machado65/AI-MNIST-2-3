@@ -9,7 +9,7 @@ import java.io.IOException;
  * visualization.
  *
  * @author hdaniel@ualg.pt
- * @author Tomás Machado
+ * @author André Martins, António Matoso, Tomás Machado
  * @version 202511052002
  */
 public class MSE {
