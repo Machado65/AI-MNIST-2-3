@@ -241,6 +241,7 @@ public class MLP {
       for (int epoch = 0; epoch < epochs; ++epoch) {
          predict(trX);
          Matrix eTr = backPropagation(trY, learningRate);
+         //
          trainMSE[epoch] = eTr.dot(eTr.transpose()).get(0, 0)
                / nTrain;
          // evaluate on test set (no backprop!)

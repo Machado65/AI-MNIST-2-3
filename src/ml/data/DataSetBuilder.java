@@ -49,13 +49,6 @@ public class DataSetBuilder {
    }
 
    /**
-    * Normalizes the dataset features to the range [0, 1].
-    */
-   public void normalize() {
-      this.x = this.x.apply(v -> v / 255.0);
-   }
-
-   /**
     * Converts the labels using the provided function.
     *
     * @param fnc the function to apply to each label.
