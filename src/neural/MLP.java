@@ -1,6 +1,10 @@
 package neural;
 
+import java.util.Arrays;
+import java.util.Random;
+
 import math.Matrix;
+import ml.training.TrainResult;
 import neural.activation.IDifferentiableFunction;
 
 /**
@@ -43,10 +47,8 @@ public class MLP {
     * @pre layerSizes.length >= 2
     * @pre act.length == layerSizes.length - 1
     */
-   public MLP(int[] layerSizes, IDifferentiableFunction[] act, int seed) {
-      if (seed < 0) {
-         seed = (int) System.currentTimeMillis();
-      }
+   public MLP(int[] layerSizes, IDifferentiableFunction[] act,
+         Random rand) {
       this.nLayers = layerSizes.length;
       this.nLayers1 = this.nLayers - 1;
       // setup activation by layer
@@ -58,8 +60,8 @@ public class MLP {
       this.w = new Matrix[this.nLayers1];
       this.b = new Matrix[this.nLayers1];
       for (int i = 0; i < this.nLayers1; ++i) {
-         this.w[i] = Matrix.rand(layerSizes[i], layerSizes[i + 1], seed);
-         this.b[i] = Matrix.rand(1, layerSizes[i + 1], seed);
+         this.w[i] = Matrix.rand(layerSizes[i], layerSizes[i + 1], rand);
+         this.b[i] = Matrix.rand(1, layerSizes[i + 1], rand);
       }
    }
 
@@ -75,6 +77,17 @@ public class MLP {
    }
 
    /**
+    * @return copy of the weight matrices for all layers.
+    */
+   public Matrix[] getWeightsCopy() {
+      Matrix[] copy = new Matrix[this.nLayers1];
+      for (int i = 0; i < this.nLayers1; i++) {
+         copy[i] = new Matrix(this.w[i]);
+      }
+      return copy;
+   }
+
+   /**
     * Returns the bias vectors for all layers.
     * Each bias vector b[i] is a row vector (1 x n matrix) containing biases
     * for neurons in layer i+1.
@@ -83,6 +96,17 @@ public class MLP {
     */
    public Matrix[] getBiases() {
       return this.b;
+   }
+
+   /**
+    * @return copy of the bias vectors for all layers.
+    */
+   public Matrix[] getBiasesCopy() {
+      Matrix[] copy = new Matrix[this.nLayers1];
+      for (int i = 0; i < this.nLayers1; i++) {
+         copy[i] = new Matrix(this.b[i]);
+      }
+      return copy;
    }
 
    /**
@@ -146,13 +170,14 @@ public class MLP {
     * @return error matrix from the first hidden layer
     */
    public Matrix backPropagation(Matrix y, double lr) {
-      Matrix delta = new Matrix(0, 0);// dummy initialization
+      Matrix delta = new Matrix(1, 1);// dummy initialization
       // back propagation using generalized delta rule
       int n = this.nLayers - 2;
       int n1 = n + 1;
       // output layer
       // e = y - yp[l+1]
       Matrix e = y.sub(this.yp[n1]);
+      Matrix eOut = e;
       this.updateLayer(n, n1, delta, e, lr);
       // hidden layers
       for (int l = n - 1; l >= 0; --l) {
@@ -161,7 +186,7 @@ public class MLP {
          e = delta.dot(this.w[l1].transpose());
          this.updateLayer(l, l1, delta, e, lr);
       }
-      return e;
+      return eOut;
    }
 
    /**
@@ -191,5 +216,64 @@ public class MLP {
                / nSamples;
       }
       return mse;
+   }
+
+   /**
+    *
+    * @param x
+    * @param y
+    * @param learningRate
+    * @param epochs
+    * @param patience
+    * @return
+    */
+   public TrainResult train(Matrix trX, Matrix trY, Matrix teX,
+         Matrix teY, double learningRate, int epochs, int patience) {
+      int nTrain = trX.rows();
+      int nTest = teX.rows();
+      int noImprove = 0;
+      int bestEpoch = 0;
+      double bestTestMSE = Double.MAX_VALUE;
+      double[] trainMSE = new double[epochs];
+      double[] testMSE = new double[epochs];
+      Matrix[] bestW = null;
+      Matrix[] bestB = null;
+      for (int epoch = 0; epoch < epochs; ++epoch) {
+         predict(trX);
+         Matrix eTr = backPropagation(trY, learningRate);
+         trainMSE[epoch] = eTr.dot(eTr.transpose()).get(0, 0)
+               / nTrain;
+         // evaluate on test set (no backprop!)
+         Matrix eTe = teY.sub(predict(teX));
+         testMSE[epoch] = eTe.dot(eTe.transpose()).get(0, 0)
+               / nTest;
+         if (epoch % 100 == 0 || epoch < 10) {
+            System.out.printf("Epoch %d: Train MSE=%.6f, Test MSE=%.6f%s%n",
+                  epoch, trainMSE[epoch], testMSE[epoch],
+                  (epoch == bestEpoch ? " *" : ""));
+         }
+         // early stopping check
+         if (testMSE[epoch] < bestTestMSE) {
+            bestTestMSE = testMSE[epoch];
+            noImprove = 0;
+            bestEpoch = epoch;
+            // save best weights and biases
+            bestW = this.getWeightsCopy();
+            bestB = this.getBiasesCopy();
+         } else {
+            ++noImprove;
+            if (noImprove >= patience) {
+               break;
+            }
+         }
+      }
+      // restore best weights and biases
+      this.w = bestW;
+      this.b = bestB;
+      int n = bestEpoch + 1;
+      System.out.printf("Best epoch: %d (MSE: %.6f)%n",
+            bestEpoch, bestTestMSE);
+      return new TrainResult(Arrays.copyOf(trainMSE, n),
+            Arrays.copyOf(testMSE, n), bestEpoch, bestTestMSE);
    }
 }

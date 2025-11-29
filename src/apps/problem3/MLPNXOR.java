@@ -1,4 +1,4 @@
-package apps;
+package apps.problem3;
 
 import java.util.Scanner;
 
@@ -7,6 +7,8 @@ import neural.MLP;
 import neural.activation.IDifferentiableFunction;
 import neural.activation.Sigmoid;
 import neural.activation.Step;
+import utils.MSE;
+import utils.RandomProvider;
 
 /**
  * Application that trains a Multi-Layer Perceptron (MLP) to learn the XOR
@@ -57,32 +59,17 @@ public class MLPNXOR {
             new IDifferentiableFunction[] {
                   new Sigmoid(),
                   new Sigmoid(), },
-            65);
+            RandomProvider.fixed());
       double[] mse = mlp.train(trX, trY, lr, epochs);
       // Predict and output results
       Matrix pred = mlp.predict(evX);
-      // System.out.println("Weights:");
-      // int layer = 1;
-      // for (Matrix w : mlp.getWeights()) {
-      // System.out.println("Layer " + layer + ":");
-      // System.out.print(w);
-      // layer++;
-      // }
-      // layer = 1;
-      // System.out.println("Biases:");
-      // for (Matrix b : mlp.getBiases()) {
-      // System.out.println("Layer " + layer + ":");
-      // System.out.print(b);
-      // layer++;
-      // }
       // convert probabilities to integer classes: 0 or 1
       pred = pred.apply(new Step().fnc());
       // print output
       // insert code here to print the pred Matrix as integers
       // …
-      // System.out.println("Predictions:");
       System.out.print(pred.toIntString());
-      // MSE.saveMSE(mse, "mse.csv");
+      MSE.saveMSE(mse, "mse.csv");
       sc.close();
    }
 }

@@ -1,6 +1,7 @@
 package math;
 
 import java.util.Arrays;
+import java.util.List;
 import java.util.Objects;
 import java.util.Random;
 import java.util.function.DoubleBinaryOperator;
@@ -28,6 +29,10 @@ public class Matrix {
     * @param cols the number of columns
     */
    public Matrix(int rows, int cols) {
+      if (rows <= 0 || cols <= 0) {
+         throw new IllegalArgumentException(
+               "Matrix dimensions must be positive.");
+      }
       this.data = new double[rows][cols];
       this.rows = rows;
       this.cols = cols;
@@ -40,12 +45,30 @@ public class Matrix {
     * @param data the 2D array of values to initialize the matrix with
     */
    public Matrix(double[][] data) {
+      if (data == null || data.length == 0) {
+         throw new IllegalArgumentException(
+               "Input array cannot be null or empty.");
+      }
       this.rows = data.length;
       this.cols = data[0].length;
       this.data = new double[rows][cols];
       for (int i = 0; i < this.rows; ++i) {
-         System.arraycopy(data[i], 0, this.data[i], 0,
-               this.cols);
+         System.arraycopy(data[i], 0, this.data[i],
+               0, this.cols);
+      }
+   }
+
+   public Matrix(List<double[]> rows) {
+      if (rows == null || rows.isEmpty()) {
+         throw new IllegalArgumentException(
+               "Input list cannot be null or empty.");
+      }
+      this.rows = rows.size();
+      this.cols = rows.get(0).length;
+      this.data = new double[this.rows][this.cols];
+      for (int i = 0; i < this.rows; ++i) {
+         System.arraycopy(rows.get(i), 0, this.data[i],
+               0, this.cols);
       }
    }
 
@@ -55,6 +78,10 @@ public class Matrix {
     * @param other the matrix to copy
     */
    public Matrix(Matrix other) {
+      if (other == null) {
+         throw new IllegalArgumentException(
+               "Input matrix cannot be null.");
+      }
       this.rows = other.rows;
       this.cols = other.cols;
       this.data = new double[rows][cols];
@@ -73,12 +100,8 @@ public class Matrix {
     *             time
     * @return a new matrix filled with random values
     */
-   public static Matrix rand(int rows, int cols, int seed) {
+   public static Matrix rand(int rows, int cols, Random rand) {
       Matrix out = new Matrix(rows, cols);
-      if (seed < 0) {
-         seed = (int) System.currentTimeMillis();
-      }
-      Random rand = new Random(seed);
       for (int i = 0; i < rows; ++i) {
          for (int j = 0; j < cols; ++j) {
             out.data[i][j] = rand.nextDouble();
