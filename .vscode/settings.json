@@ -1,6 +1,10 @@
 {
    "java.project.sourcePaths": [
-      "src"
+      "src",
+      "tests"
    ],
-   "java.project.referencedLibraries": []
+   "java.project.referencedLibraries": [
+      "/Users/machado/Documents/Codes/Java/IA/MNIST-2-3/test-lib/junit-platform-console-standalone-1.13.0-M3.jar"
+   ],
+   "java.debug.settings.onBuildFailureProceed": true
 }

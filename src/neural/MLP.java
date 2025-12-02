@@ -32,20 +32,12 @@ public class MLP {
 
    /**
     * Constructs a Multi-Layer Perceptron with specified architecture.
-    * Initializes weights and biases with random values using the provided seed.
+    * Allows choosing between Xavier (for Sigmoid/Tanh) and He (for ReLU)
+    * initialization.
     *
-    * @param layerSizes array defining the number of neurons in each layer.
-    *                   First element is input size, last is output size.
-    *                   Must have at least 2 elements (input and output layers).
-    * @param act        array of activation functions for each layer (excluding
-    *                   input layer).
-    *                   Must have length equal to layerSizes.length - 1.
-    * @param seed       random seed for weight initialization; if negative, uses
-    *                   current time
-    * @throws IllegalArgumentException implicitly if preconditions are violated
-    *
-    * @pre layerSizes.length >= 2
-    * @pre act.length == layerSizes.length - 1
+    * @param layerSizes array defining the number of neurons in each layer
+    * @param act        array of activation functions for each layer
+    * @param rand       random instance for weight initialization
     */
    public MLP(int[] layerSizes, IDifferentiableFunction[] act,
          Random rand) {
@@ -60,8 +52,8 @@ public class MLP {
       this.w = new Matrix[this.nLayers1];
       this.b = new Matrix[this.nLayers1];
       for (int i = 0; i < this.nLayers1; ++i) {
-         this.w[i] = Matrix.rand(layerSizes[i], layerSizes[i + 1], rand);
-         this.b[i] = Matrix.rand(1, layerSizes[i + 1], rand);
+         this.w[i] = Matrix.randXavier(layerSizes[i], layerSizes[i + 1], rand);
+         this.b[i] = new Matrix(1, layerSizes[i + 1]);
       }
    }
 
@@ -81,7 +73,7 @@ public class MLP {
     */
    public Matrix[] getWeightsCopy() {
       Matrix[] copy = new Matrix[this.nLayers1];
-      for (int i = 0; i < this.nLayers1; i++) {
+      for (int i = 0; i < this.nLayers1; ++i) {
          copy[i] = new Matrix(this.w[i]);
       }
       return copy;
@@ -103,7 +95,7 @@ public class MLP {
     */
    public Matrix[] getBiasesCopy() {
       Matrix[] copy = new Matrix[this.nLayers1];
-      for (int i = 0; i < this.nLayers1; i++) {
+      for (int i = 0; i < this.nLayers1; ++i) {
          copy[i] = new Matrix(this.b[i]);
       }
       return copy;
@@ -123,8 +115,8 @@ public class MLP {
    public Matrix predict(Matrix x) {
       this.yp[0] = x;
       for (int l = 0; l < this.nLayers1; ++l) {
-         this.yp[l + 1] = this.yp[l].dot(this.w[l]).addRowVector(this.b[l])
-               .apply(this.act[l].fnc());
+         this.yp[l + 1] = this.yp[l].dot(this.w[l])
+               .addRowVector(this.b[l]).apply(this.act[l].fnc());
       }
       return this.yp[this.nLayers - 1];
    }
@@ -154,20 +146,11 @@ public class MLP {
    }
 
    /**
-    * Performs backpropagation to compute and apply weight updates.
-    * Uses the generalized delta rule to propagate errors backward through the
-    * network
-    * and update weights and biases for all layers.
-    *
-    * Algorithm:
-    * 1. Compute error at output layer: e = y - yp[output]
-    * 2. Update output layer weights and biases
-    * 3. Propagate error backward: e = delta * w[l+1]^T
-    * 4. Update each hidden layer from last to first
+    * Performs backpropagation to update weights and biases based on the error.
+    * Uses the generalized delta rule to compute gradients and update parameters.
     *
     * @param y  target output matrix (ground truth labels)
     * @param lr learning rate for weight updates
-    * @return error matrix from the first hidden layer
     */
    public Matrix backPropagation(Matrix y, double lr) {
       Matrix delta = new Matrix(1, 1);// dummy initialization
@@ -177,7 +160,7 @@ public class MLP {
       // output layer
       // e = y - yp[l+1]
       Matrix e = y.sub(this.yp[n1]);
-      Matrix eOut = e;
+      Matrix eOut = new Matrix(e);
       this.updateLayer(n, n1, delta, e, lr);
       // hidden layers
       for (int l = n - 1; l >= 0; --l) {
@@ -214,6 +197,8 @@ public class MLP {
          // mse
          mse[epoch] = e.dot(e.transpose()).get(0, 0)
                / nSamples;
+         System.out.printf("Epoch %d: Train MSE=%.6f%n", epoch,
+               mse[epoch]);
       }
       return mse;
    }
@@ -238,10 +223,12 @@ public class MLP {
       double[] testMSE = new double[epochs];
       Matrix[] bestW = null;
       Matrix[] bestB = null;
+
+      long startTime = System.currentTimeMillis();
+
       for (int epoch = 0; epoch < epochs; ++epoch) {
          predict(trX);
          Matrix eTr = backPropagation(trY, learningRate);
-         //
          trainMSE[epoch] = eTr.dot(eTr.transpose()).get(0, 0)
                / nTrain;
          // evaluate on test set (no backprop!)
@@ -249,9 +236,10 @@ public class MLP {
          testMSE[epoch] = eTe.dot(eTe.transpose()).get(0, 0)
                / nTest;
          if (epoch % 100 == 0 || epoch < 10) {
-            System.out.printf("Epoch %d: Train MSE=%.6f, Test MSE=%.6f%s%n",
-                  epoch, trainMSE[epoch], testMSE[epoch],
-                  (epoch == bestEpoch ? " *" : ""));
+            long elapsed = System.currentTimeMillis() - startTime;
+            double avgTimePerEpoch = (epoch > 0) ? (double) elapsed / (epoch + 1) : 0;
+            System.out.printf("Epoch %d: Train MSE=%.6f, Test MSE=%.6f, Best Epoch=%d(%.0f ms/epoch)%n",
+                  epoch, trainMSE[epoch], testMSE[epoch], bestEpoch, avgTimePerEpoch);
          }
          // early stopping check
          if (testMSE[epoch] < bestTestMSE) {
@@ -264,6 +252,7 @@ public class MLP {
          } else {
             ++noImprove;
             if (noImprove >= patience) {
+               System.out.printf("%nEarly stopping at epoch %d (no improvement for %d epochs)%n", epoch, patience);
                break;
             }
          }

@@ -10,6 +10,6 @@ public class ReLU implements IDifferentiableFunction {
 
    @Override
    public DoubleUnaryOperator derivative() {
-      return x -> (x > 0.0) ? 1.0 : 0.01;
+      return x -> (x > 0.0) ? 1.0 : 0.0;
    }
 }

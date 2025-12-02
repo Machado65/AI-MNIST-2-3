@@ -63,6 +63,20 @@ public class MLPNXOR {
       double[] mse = mlp.train(trX, trY, lr, epochs);
       // Predict and output results
       Matrix pred = mlp.predict(evX);
+      // System.out.println("Weights:");
+      // int layer = 1;
+      // for (Matrix w : mlp.getWeights()) {
+      // System.out.println("Layer " + layer + ":");
+      // System.out.print(w);
+      // layer++;
+      // }
+      // layer = 1;
+      // System.out.println("Biases:");
+      // for (Matrix b : mlp.getBiases()) {
+      // System.out.println("Layer " + layer + ":");
+      // System.out.print(b);
+      // layer++;
+      // }
       // convert probabilities to integer classes: 0 or 1
       pred = pred.apply(new Step().fnc());
       // print output

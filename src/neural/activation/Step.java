@@ -43,5 +43,4 @@ public class Step implements IDifferentiableFunction {
       throw new UnsupportedOperationException(
             "Step function is not differentiable.");
    }
-
 }

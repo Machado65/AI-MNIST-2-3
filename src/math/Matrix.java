@@ -111,6 +111,46 @@ public class Matrix {
    }
 
    /**
+    * Creates a matrix with random values using Xavier initialization.
+    *
+    * @param rows the number of rows (input size)
+    * @param cols the number of columns (output size)
+    * @param rand Random instance for reproducibility
+    * @return a new matrix initialized with Xavier initialization
+    */
+   public static Matrix randXavier(int rows, int cols, Random rand) {
+      Matrix out = new Matrix(rows, cols);
+      double limit = Math.sqrt(6.0 / (rows + cols));
+      for (int i = 0; i < rows; ++i) {
+         for (int j = 0; j < cols; ++j) {
+            out.data[i][j] = (rand.nextDouble() * 2 - 1) * limit;
+         }
+      }
+      return out;
+   }
+
+   /**
+    * Creates a matrix with random values using He initialization.
+    * Best for ReLU activation functions.
+    * Values are drawn from N(0, sqrt(2/n_in))
+    *
+    * @param rows the number of rows (input size)
+    * @param cols the number of columns (output size)
+    * @param rand Random instance for reproducibility
+    * @return a new matrix initialized with He initialization
+    */
+   public static Matrix randHe(int rows, int cols, Random rand) {
+      Matrix out = new Matrix(rows, cols);
+      double stddev = Math.sqrt(2.0 / rows);
+      for (int i = 0; i < rows; ++i) {
+         for (int j = 0; j < cols; ++j) {
+            out.data[i][j] = rand.nextGaussian() * stddev;
+         }
+      }
+      return out;
+   }
+
+   /**
     * Gets the value at the specified position in the matrix.
     *
     * @param row the row index
