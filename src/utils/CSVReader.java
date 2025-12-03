@@ -42,7 +42,7 @@ public class CSVReader {
             }
             rows.add(row);
          }
-      } catch (IOException | NumberFormatException e) {
+      } catch (IOException e) {
          e.printStackTrace();
       }
       return new Matrix(rows);

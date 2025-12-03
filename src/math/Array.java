@@ -9,7 +9,7 @@ public class Array {
       this.data = new int[n];
    }
 
-   public void initializeSequential(int n) {
+   public void initSequential(int n) {
       for (int i = 0; i < n; ++i) {
          this.data[i] = i;
       }

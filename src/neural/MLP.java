@@ -223,9 +223,7 @@ public class MLP {
       double[] testMSE = new double[epochs];
       Matrix[] bestW = null;
       Matrix[] bestB = null;
-
-      long startTime = System.currentTimeMillis();
-
+      // long startTime = System.currentTimeMillis();
       for (int epoch = 0; epoch < epochs; ++epoch) {
          predict(trX);
          Matrix eTr = backPropagation(trY, learningRate);
@@ -235,12 +233,13 @@ public class MLP {
          Matrix eTe = teY.sub(predict(teX));
          testMSE[epoch] = eTe.dot(eTe.transpose()).get(0, 0)
                / nTest;
-         if (epoch % 100 == 0 || epoch < 10) {
-            long elapsed = System.currentTimeMillis() - startTime;
-            double avgTimePerEpoch = (epoch > 0) ? (double) elapsed / (epoch + 1) : 0;
-            System.out.printf("Epoch %d: Train MSE=%.6f, Test MSE=%.6f, Best Epoch=%d(%.0f ms/epoch)%n",
-                  epoch, trainMSE[epoch], testMSE[epoch], bestEpoch, avgTimePerEpoch);
-         }
+         // if (epoch % 100 == 0 || epoch < 10) {
+         // long elapsed = System.currentTimeMillis() - startTime;
+         // double avgTimePerEpoch = (epoch > 0) ? (double) elapsed / (epoch + 1) : 0;
+         // System.out.printf("Epoch %d: Train MSE=%.6f, Test MSE=%.6f, Best
+         // Epoch=%d(%.0f ms/epoch)%n",
+         // epoch, trainMSE[epoch], testMSE[epoch], bestEpoch, avgTimePerEpoch);
+         // }
          // early stopping check
          if (testMSE[epoch] < bestTestMSE) {
             bestTestMSE = testMSE[epoch];
@@ -252,7 +251,8 @@ public class MLP {
          } else {
             ++noImprove;
             if (noImprove >= patience) {
-               System.out.printf("%nEarly stopping at epoch %d (no improvement for %d epochs)%n", epoch, patience);
+               // System.out.printf("%nEarly stopping at epoch %d (no improvement for %d
+               // epochs)%n", epoch, patience);
                break;
             }
          }
@@ -261,8 +261,8 @@ public class MLP {
       this.w = bestW;
       this.b = bestB;
       int n = bestEpoch + 1;
-      System.out.printf("Best epoch: %d (MSE: %.6f)%n",
-            bestEpoch, bestTestMSE);
+      // System.out.printf("Best epoch: %d (MSE: %.6f)%n",
+      // bestEpoch, bestTestMSE);
       return new TrainResult(Arrays.copyOf(trainMSE, n),
             Arrays.copyOf(testMSE, n), bestEpoch, bestTestMSE);
    }

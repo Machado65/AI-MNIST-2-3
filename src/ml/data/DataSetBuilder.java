@@ -104,7 +104,7 @@ public class DataSetBuilder {
       int trainSize = (int) (n * trainRatio);
       int testSize = n - trainSize;
       Array indices = new Array(n);
-      indices.initializeSequential(n);
+      indices.initSequential(n);
       indices.shuffleArray(rand);
       double[][] trXData = new double[trainSize][m];
       double[][] trYData = new double[trainSize][1];
@@ -124,9 +124,19 @@ public class DataSetBuilder {
          }
          teYData[i][0] = this.y.get(idx, 0);
       }
-      this.trX = trainSize > 0 ? new Matrix(trXData) : null;
-      this.trY = trainSize > 0 ? new Matrix(trYData) : null;
-      this.teX = testSize > 0 ? new Matrix(teXData) : null;
-      this.teY = testSize > 0 ? new Matrix(teYData) : null;
+      if (trainSize > 0) {
+         this.trX = new Matrix(trXData);
+         this.trY = new Matrix(trYData);
+      } else {
+         this.trX = null;
+         this.trY = null;
+      }
+      if (testSize > 0) {
+         this.teX = new Matrix(teXData);
+         this.teY = new Matrix(teYData);
+      } else {
+         this.teX = null;
+         this.teY = null;
+      }
    }
 }
