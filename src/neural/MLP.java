@@ -1,11 +1,19 @@
 package neural;
 
+import java.io.BufferedReader;
+import java.io.BufferedWriter;
+import java.io.FileReader;
+import java.io.FileWriter;
+import java.io.IOException;
 import java.util.Arrays;
 import java.util.Random;
 
 import math.Matrix;
 import ml.training.TrainResult;
 import neural.activation.IDifferentiableFunction;
+import neural.activation.ReLU;
+import neural.activation.Sigmoid;
+import neural.activation.Step;
 
 /**
  * Multi-Layer Perceptron (MLP) neural network implementation.
@@ -29,6 +37,97 @@ public class MLP {
    private final IDifferentiableFunction[] act; // activation functions for each layer
    private final int nLayers;
    private final int nLayers1;
+   private static final String WHITESPACE = "\\s+";
+
+   private int[] readTopology(BufferedReader br) throws IOException {
+      String line = br.readLine();
+      if (!line.startsWith("TOPOLOGY")) {
+         throw new IOException(
+               "Invalid model file: expected TOPOLOGY");
+      }
+      String[] topologyTok = line.substring(9)
+            .split(WHITESPACE);
+      int n = topologyTok.length;
+      int[] layerSizes = new int[n];
+      for (int i = 0; i < n; ++i) {
+         layerSizes[i] = Integer.parseInt(topologyTok[i]);
+      }
+      return layerSizes;
+   }
+
+   private void readActivations(BufferedReader br) throws IOException {
+      String line = br.readLine();
+      if (!line.startsWith("ACTIVATIONS")) {
+         throw new IOException(
+               "Invalid model file: expected ACTIVATIONS");
+      }
+      String[] actTok = line.substring(12)
+            .split(WHITESPACE);
+      int n = actTok.length;
+      for (int i = 0; i < n; ++i) {
+         switch (actTok[i]) {
+            case "Sigmoid":
+               this.act[i] = new Sigmoid();
+               break;
+            case "ReLU":
+               this.act[i] = new ReLU();
+               break;
+            case "Step":
+               this.act[i] = new Step();
+               break;
+            default:
+               throw new IOException("Unknown activation function: "
+                     + actTok[i]);
+         }
+      }
+   }
+
+   private Matrix readMatrix(BufferedReader br) throws IOException {
+      String[] dims = br.readLine().split(WHITESPACE);
+      int rows = Integer.parseInt(dims[0]);
+      int cols = Integer.parseInt(dims[1]);
+      double[][] data = new double[rows][cols];
+      for (int i = 0; i < rows; ++i) {
+         String[] values = br.readLine().split(WHITESPACE);
+         for (int j = 0; j < cols; ++j) {
+            data[i][j] = Double.parseDouble(values[j]);
+         }
+      }
+      return new Matrix(data);
+   }
+
+   private void readMatrices(BufferedReader br, String expectedHeader, Matrix[] matrices, int n) throws IOException {
+      String line = br.readLine();
+      if (line == null || !line.equals(expectedHeader)) {
+         throw new IOException(
+               "Invalid model file: expected " + expectedHeader);
+      }
+      for (int l = 0; l < n; ++l) {
+         matrices[l] = readMatrix(br);
+      }
+   }
+
+   public MLP(String path) throws IOException {
+      try (BufferedReader br = new BufferedReader(new FileReader(path))) {
+         int[] layerSizes = readTopology(br);
+         this.nLayers = layerSizes.length;
+         this.nLayers1 = this.nLayers - 1;
+         this.yp = new Matrix[this.nLayers];
+         this.w = new Matrix[this.nLayers1];
+         this.b = new Matrix[this.nLayers1];
+         this.act = new IDifferentiableFunction[this.nLayers1];
+         readActivations(br);
+         readMatrices(br, "WEIGHTS", this.w,
+               this.nLayers1);
+         readMatrices(br, "BIASES", this.b,
+               this.nLayers1);
+         String end = br.readLine();
+         if (end == null || !end.equals("END")) {
+            throw new IOException(
+                  "Invalid model file: expected END");
+         }
+      }
+   }
 
    /**
     * Constructs a Multi-Layer Perceptron with specified architecture.
@@ -197,8 +296,6 @@ public class MLP {
          // mse
          mse[epoch] = e.dot(e.transpose()).get(0, 0)
                / nSamples;
-         System.out.printf("Epoch %d: Train MSE=%.6f%n", epoch,
-               mse[epoch]);
       }
       return mse;
    }
@@ -223,7 +320,6 @@ public class MLP {
       double[] testMSE = new double[epochs];
       Matrix[] bestW = null;
       Matrix[] bestB = null;
-      // long startTime = System.currentTimeMillis();
       for (int epoch = 0; epoch < epochs; ++epoch) {
          predict(trX);
          Matrix eTr = backPropagation(trY, learningRate);
@@ -233,13 +329,6 @@ public class MLP {
          Matrix eTe = teY.sub(predict(teX));
          testMSE[epoch] = eTe.dot(eTe.transpose()).get(0, 0)
                / nTest;
-         // if (epoch % 100 == 0 || epoch < 10) {
-         // long elapsed = System.currentTimeMillis() - startTime;
-         // double avgTimePerEpoch = (epoch > 0) ? (double) elapsed / (epoch + 1) : 0;
-         // System.out.printf("Epoch %d: Train MSE=%.6f, Test MSE=%.6f, Best
-         // Epoch=%d(%.0f ms/epoch)%n",
-         // epoch, trainMSE[epoch], testMSE[epoch], bestEpoch, avgTimePerEpoch);
-         // }
          // early stopping check
          if (testMSE[epoch] < bestTestMSE) {
             bestTestMSE = testMSE[epoch];
@@ -251,19 +340,68 @@ public class MLP {
          } else {
             ++noImprove;
             if (noImprove >= patience) {
-               // System.out.printf("%nEarly stopping at epoch %d (no improvement for %d
-               // epochs)%n", epoch, patience);
                break;
             }
          }
       }
-      // restore best weights and biases
       this.w = bestW;
       this.b = bestB;
       int n = bestEpoch + 1;
-      // System.out.printf("Best epoch: %d (MSE: %.6f)%n",
-      // bestEpoch, bestTestMSE);
       return new TrainResult(Arrays.copyOf(trainMSE, n),
             Arrays.copyOf(testMSE, n), bestEpoch, bestTestMSE);
+   }
+
+   private int getLayerSize(int layerIdx) {
+      return (layerIdx == 0) ? w[0].rows() : w[layerIdx - 1].cols();
+   }
+
+   private void writeTopology(BufferedWriter bw) throws IOException {
+      bw.append("TOPOLOGY");
+      for (int i = 0; i < nLayers; ++i) {
+         bw.append(" ").append(Integer.toString(getLayerSize(i)));
+      }
+      bw.newLine();
+   }
+
+   private void writeActivations(BufferedWriter bw) throws IOException {
+      bw.append("ACTIVATIONS");
+      for (IDifferentiableFunction f : act) {
+         bw.append(" ").append(f.getClass().getSimpleName());
+      }
+      bw.newLine();
+   }
+
+   private void writeMatrices(BufferedWriter bw, String label,
+         Matrix[] matrices) throws IOException {
+      bw.append(label);
+      bw.newLine();
+      for (Matrix matrix : matrices) {
+         this.writeMatrix(bw, matrix);
+      }
+   }
+
+   private void writeMatrix(BufferedWriter bw, Matrix matrix)
+         throws IOException {
+      bw.append(matrix.rows() + " " + matrix.cols());
+      bw.newLine();
+      int n = matrix.rows();
+      int m = matrix.cols();
+      for (int i = 0; i < n; ++i) {
+         for (int j = 0; j < m; ++j) {
+            bw.append(String.format("%.16f", matrix.get(i, j)))
+                  .append(" ");
+         }
+         bw.newLine();
+      }
+   }
+
+   public void saveModel(String path) throws IOException {
+      try (BufferedWriter bw = new BufferedWriter(new FileWriter(path))) {
+         this.writeTopology(bw);
+         this.writeActivations(bw);
+         this.writeMatrices(bw, "WEIGHTS", this.w);
+         this.writeMatrices(bw, "BIASES", this.b);
+         bw.append("END");
+      }
    }
 }

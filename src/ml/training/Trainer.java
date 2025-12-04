@@ -20,6 +20,10 @@ public class Trainer {
       this.mlp = new MLP(topology, act, rand);
    }
 
+   public MLP getMLP() {
+      return this.mlp;
+   }
+
    public TrainResult train(Matrix trX, Matrix trY, Matrix teX, Matrix teY) {
       return mlp.train(trX, trY, teX, teY, lr, epochs, patience);
    }
