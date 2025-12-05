@@ -151,7 +151,8 @@ public class MLP {
       this.w = new Matrix[this.nLayers1];
       this.b = new Matrix[this.nLayers1];
       for (int i = 0; i < this.nLayers1; ++i) {
-         this.w[i] = Matrix.randXavier(layerSizes[i], layerSizes[i + 1], rand);
+         this.w[i] = Matrix.randXavier(layerSizes[i], layerSizes[i + 1],
+               rand);
          this.b[i] = new Matrix(1, layerSizes[i + 1]);
       }
    }
@@ -220,28 +221,16 @@ public class MLP {
       return this.yp[this.nLayers - 1];
    }
 
-   /**
-    * Updates weights and biases for a specific layer using the delta rule.
-    *
-    * Computes:
-    * - delta = e .* yp[l+1] .* derivative(yp[l+1])
-    * - w[l] += yp[l]^T * delta * lr
-    * - b[l] += sum(delta) * lr
-    *
-    * @param l     the layer index to update
-    * @param l1    the next layer index (l + 1)
-    * @param delta matrix to store computed delta values (modified in place)
-    * @param e     error matrix for this layer
-    * @param lr    learning rate
-    */
-   private void updateLayer(int l, int l1, Matrix delta, Matrix e,
-         double lr) {
+   private Matrix computeDeltaForLayer(int l, int l1, Matrix e) {
       // delta = e .* yp[l+1] .* (1-yp[l+1])
-      delta.set(e.mult(this.yp[l1].apply(this.act[l].derivative())));
+      return e.mult(this.yp[l1].apply(this.act[l].derivative()));
+   }
+
+   private void updateLayer(int l, Matrix delta, double lr) {
       // w[l] += yp[l]^T * delta * lr
       this.w[l].addInPlace(this.yp[l].transpose().dot(delta).mult(lr));
       // b[l] += sum(delta) * lr
-      b[l].addInPlaceRowVector(delta.sumColumns().mult(lr));
+      this.b[l].addInPlaceRowVector(delta.sumColumns().mult(lr));
    }
 
    /**
@@ -252,7 +241,6 @@ public class MLP {
     * @param lr learning rate for weight updates
     */
    public Matrix backPropagation(Matrix y, double lr) {
-      Matrix delta = new Matrix(1, 1);// dummy initialization
       // back propagation using generalized delta rule
       int n = this.nLayers - 2;
       int n1 = n + 1;
@@ -260,13 +248,15 @@ public class MLP {
       // e = y - yp[l+1]
       Matrix e = y.sub(this.yp[n1]);
       Matrix eOut = new Matrix(e);
-      this.updateLayer(n, n1, delta, e, lr);
+      Matrix delta = this.computeDeltaForLayer(n, n1, e);
+      this.updateLayer(n, delta, lr);
       // hidden layers
       for (int l = n - 1; l >= 0; --l) {
          int l1 = l + 1;
          // e = delta * w[l+1]^T
          e = delta.dot(this.w[l1].transpose());
-         this.updateLayer(l, l1, delta, e, lr);
+         delta = this.computeDeltaForLayer(l, l1, e);
+         this.updateLayer(l, delta, lr);
       }
       return eOut;
    }
@@ -294,8 +284,9 @@ public class MLP {
          // backward propagation
          Matrix e = backPropagation(y, learningRate);
          // mse
-         mse[epoch] = e.dot(e.transpose()).get(0, 0)
-               / nSamples;
+         mse[epoch] = e.mult(e).sum() / nSamples;
+         // mse[epoch] = e.dot(e.transpose()).get(0, 0)
+         /// nSamples;
       }
       return mse;
    }
@@ -323,12 +314,14 @@ public class MLP {
       for (int epoch = 0; epoch < epochs; ++epoch) {
          predict(trX);
          Matrix eTr = backPropagation(trY, learningRate);
-         trainMSE[epoch] = eTr.dot(eTr.transpose()).get(0, 0)
-               / nTrain;
+         trainMSE[epoch] = eTr.mult(eTr).sum() / nTrain;
+         // trainMSE[epoch]= eTr.dot(eTr.transpose()).get(0,0)
+         // / nTrain;
          // evaluate on test set (no backprop!)
          Matrix eTe = teY.sub(predict(teX));
-         testMSE[epoch] = eTe.dot(eTe.transpose()).get(0, 0)
-               / nTest;
+         testMSE[epoch] = eTe.mult(eTe).sum() / nTest;
+         // testMSE[epoch]= eTe.dot(eTe.transpose()).get(0,0)
+         // / nTest;
          // early stopping check
          if (testMSE[epoch] < bestTestMSE) {
             bestTestMSE = testMSE[epoch];

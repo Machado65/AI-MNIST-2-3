@@ -11,6 +11,10 @@ public class RandomProvider {
       // Prevent instantiation
    }
 
+   public static Random of(long seed) {
+      return new Random(seed);
+   }
+
    public static Random fixed() {
       return FIXED;
    }
