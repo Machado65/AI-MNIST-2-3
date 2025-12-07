@@ -16,6 +16,10 @@ public class EvaluationResult {
       return this.o;
    }
 
+   public double getAccuracy() {
+      return this.m.getAccuracy();
+   }
+
    @Override
    public String toString() {
       StringBuilder sb = new StringBuilder();

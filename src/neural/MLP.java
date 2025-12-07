@@ -11,6 +11,7 @@ import java.util.Random;
 import math.Matrix;
 import ml.training.TrainResult;
 import neural.activation.IDifferentiableFunction;
+import neural.activation.LeakyReLU;
 import neural.activation.ReLU;
 import neural.activation.Sigmoid;
 import neural.activation.Step;
@@ -71,6 +72,9 @@ public class MLP {
                break;
             case "ReLU":
                this.act[i] = new ReLU();
+               break;
+            case "LeakyReLU":
+               this.act[i] = new LeakyReLU();
                break;
             case "Step":
                this.act[i] = new Step();
@@ -151,9 +155,14 @@ public class MLP {
       this.w = new Matrix[this.nLayers1];
       this.b = new Matrix[this.nLayers1];
       for (int i = 0; i < this.nLayers1; ++i) {
-         this.w[i] = Matrix.randXavier(layerSizes[i], layerSizes[i + 1],
-               rand);
-         this.b[i] = new Matrix(1, layerSizes[i + 1]);
+         int n = layerSizes[i + 1];
+         this.w[i] = Matrix.randHe(layerSizes[i], n, rand);
+         double[][] biasData = new double[1][n];
+         for (int j = 0; j < n; ++j) {
+            // small random values in [-0.01, 0.01] for sigmoid
+            biasData[0][j] = (rand.nextDouble() * 2.0 - 1.0) * 0.01;
+         }
+         this.b[i] = new Matrix(biasData);
       }
    }
 
