@@ -9,6 +9,7 @@ import java.util.Arrays;
 import java.util.Random;
 
 import math.Matrix;
+import ml.training.OptimalThreshold;
 import ml.training.TrainResult;
 import neural.activation.IDifferentiableFunction;
 import neural.activation.LeakyReLU;
@@ -38,7 +39,19 @@ public class MLP {
    private final IDifferentiableFunction[] act; // activation functions for each layer
    private final int nLayers;
    private final int nLayers1;
+   private OptimalThreshold optThreshold;
    private static final String WHITESPACE = "\\s+";
+
+   private OptimalThreshold readOptimalThreshold(BufferedReader br)
+         throws IOException {
+      String line = br.readLine();
+      if (!line.startsWith("OPTIMAL_THRESHOLD")) {
+         throw new IOException(
+               "Invalid model file: expected OPTIMAL_THRESHOLD");
+      }
+      return new OptimalThreshold(Double.parseDouble(
+            line.split(WHITESPACE)[1]));
+   }
 
    private int[] readTopology(BufferedReader br) throws IOException {
       String line = br.readLine();
@@ -100,7 +113,8 @@ public class MLP {
       return new Matrix(data);
    }
 
-   private void readMatrices(BufferedReader br, String expectedHeader, Matrix[] matrices, int n) throws IOException {
+   private void readMatrices(BufferedReader br, String expectedHeader,
+         Matrix[] matrices, int n) throws IOException {
       String line = br.readLine();
       if (line == null || !line.equals(expectedHeader)) {
          throw new IOException(
@@ -113,6 +127,7 @@ public class MLP {
 
    public MLP(String path) throws IOException {
       try (BufferedReader br = new BufferedReader(new FileReader(path))) {
+         this.optThreshold = readOptimalThreshold(br);
          int[] layerSizes = readTopology(br);
          this.nLayers = layerSizes.length;
          this.nLayers1 = this.nLayers - 1;
@@ -144,6 +159,7 @@ public class MLP {
     */
    public MLP(int[] layerSizes, IDifferentiableFunction[] act,
          Random rand) {
+      this.optThreshold = new OptimalThreshold(0.5);
       this.nLayers = layerSizes.length;
       this.nLayers1 = this.nLayers - 1;
       // setup activation by layer
@@ -164,6 +180,13 @@ public class MLP {
          }
          this.b[i] = new Matrix(biasData);
       }
+   }
+
+   /**
+    * @return the optimal threshold used for classification.
+    */
+   public OptimalThreshold getOptimalThreshold() {
+      return this.optThreshold;
    }
 
    /**
@@ -353,6 +376,17 @@ public class MLP {
             Arrays.copyOf(testMSE, n), bestEpoch, bestTestMSE);
    }
 
+   private void writeOptimalThreshold(BufferedWriter bw,
+         OptimalThreshold o) {
+      try {
+         bw.append("OPTIMAL_THRESHOLD ");
+         bw.append(String.format("%.2f", o.getThreshold()));
+         bw.newLine();
+      } catch (Exception e) {
+         e.printStackTrace();
+      }
+   }
+
    private int getLayerSize(int layerIdx) {
       return (layerIdx == 0) ? w[0].rows() : w[layerIdx - 1].cols();
    }
@@ -397,8 +431,10 @@ public class MLP {
       }
    }
 
-   public void saveModel(String path) throws IOException {
+   public void saveModel(String path, OptimalThreshold o)
+         throws IOException {
       try (BufferedWriter bw = new BufferedWriter(new FileWriter(path))) {
+         this.writeOptimalThreshold(bw, o);
          this.writeTopology(bw);
          this.writeActivations(bw);
          this.writeMatrices(bw, "WEIGHTS", this.w);
@@ -406,4 +442,5 @@ public class MLP {
          bw.append("END");
       }
    }
+
 }

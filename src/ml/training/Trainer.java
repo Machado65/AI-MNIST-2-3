@@ -57,7 +57,7 @@ public class Trainer {
             bestThreshold = threshold;
          }
       }
-      return new OptimalThreshold(bestThreshold, bestAccuracy);
+      return new OptimalThreshold(bestThreshold);
    }
 
    private EvaluationMetrics computeMetrics(Matrix pred, Matrix actual,

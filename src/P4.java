@@ -13,7 +13,7 @@ public class P4 {
    public static void main(String[] args) {
       try (BufferedReader br = new BufferedReader(
             new InputStreamReader(System.in))) {
-         MLP mlp = new MLP("src/ml/models/mlp_config4s1337.dat");
+         MLP mlp = new MLP("src/ml/models/mlp_model.dat");
          String line;
          List<Matrix> pred = new ArrayList<>();
          while ((line = br.readLine()) != null) {
@@ -23,7 +23,8 @@ public class P4 {
                input[0][i] = Double.parseDouble(values[i]);
             }
             pred.add(mlp.predict(new Matrix(input))
-                  .apply(v -> (v < 0.50) ? 2 : 3));
+                  .apply(v -> (v < mlp.getOptimalThreshold()
+                        .getThreshold()) ? 2 : 3));
          }
          for (Matrix p : pred) {
             System.out.print(p.toIntString());

@@ -1,6 +1,7 @@
 package ml.data;
 
 import java.util.Random;
+import java.util.function.BiConsumer;
 import java.util.function.DoubleUnaryOperator;
 
 import math.Array;
@@ -64,38 +65,100 @@ public class DataSetBuilder {
       this.y = this.y.apply(fnc);
    }
 
-   /**
-    * Adds Gaussian noise to create augmented copies of the images.
-    *
-    * @param stdDev standard deviation of Gaussian noise (e.g., 0.1)
-    * @param copies number of noisy copies per original image
-    */
-   public void addGaussianNoise(double stdDev, int copies, Random rand) {
-      int origRows = this.x.rows();
-      int cols = this.x.cols();
+   private void augment(int copies,
+         BiConsumer<double[], double[]> transform) {
+      int origRows = x.rows();
+      int cols = x.cols();
       int totalRows = origRows * (1 + copies);
       double[][] augmentedX = new double[totalRows][cols];
       double[][] augmentedY = new double[totalRows][1];
+      double[] input = new double[cols];
+      double[] output = new double[cols];
       int idx = 0;
       for (int i = 0; i < origRows; ++i) {
-         double origLabel = this.y.get(i, 0);
+         double label = y.get(i, 0);
          for (int j = 0; j < cols; ++j) {
-            augmentedX[idx][j] = this.x.get(i, j);
+            input[j] = x.get(i, j);
          }
-         augmentedY[idx][0] = origLabel;
+         System.arraycopy(input, 0, augmentedX[idx], 0,
+               cols);
+         augmentedY[idx][0] = label;
          ++idx;
          for (int c = 0; c < copies; ++c) {
             for (int j = 0; j < cols; ++j) {
-               double noisy = this.x.get(i, j) +
-                     rand.nextGaussian() * stdDev;
-               augmentedX[idx][j] = Math.clamp(noisy, 0.0, 1.0);
+               input[j] = x.get(i, j);
             }
-            augmentedY[idx][0] = origLabel;
+            transform.accept(input, output);
+            System.arraycopy(output, 0, augmentedX[idx],
+                  0, cols);
+            augmentedY[idx][0] = label;
             ++idx;
          }
       }
-      this.x = new Matrix(augmentedX);
-      this.y = new Matrix(augmentedY);
+      x = new Matrix(augmentedX);
+      y = new Matrix(augmentedY);
+   }
+
+   public void addGaussianNoise(double stdDev, int copies, Random rand) {
+      augment(copies, (input, output) -> ImageAugmentation.gaussianNoise(
+            input, stdDev, rand));
+   }
+
+   public void addElasticDeformation(double alpha, double sigma,
+         int copies, Random rand) {
+      augment(copies, (input, output) -> ImageAugmentation.elasticDeform(
+            input, output, rand, alpha, sigma));
+   }
+
+   public void addRotation(double maxDegrees, int copies, Random rand) {
+      augment(copies, (input, output) -> ImageAugmentation.applyRotation(
+            input, output, rand, maxDegrees));
+   }
+
+   public void addShift(int copies, Random rand) {
+      augment(copies, (input, output) -> ImageAugmentation.shift(input,
+            output, rand));
+   }
+
+   public void addCombinedAugmentation1(int copies, Random rand,
+         double alpha, double sigma, double maxDegrees) {
+      augment(copies, (input, output) -> {
+         double[] temp1 = new double[input.length];
+         double[] temp2 = new double[input.length];
+         ImageAugmentation.elasticDeform(input, temp1, rand, alpha,
+               sigma);
+         ImageAugmentation.applyRotation(temp1, temp2, rand,
+               maxDegrees);
+         ImageAugmentation.applyBrightness(temp2, output, rand);
+      });
+   }
+
+   public void addCombinedAugmentation2(int copies, Random rand,
+         double alpha, double sigma, double maxDegrees) {
+      augment(copies, (input, output) -> {
+         double[] temp1 = new double[input.length];
+         double[] temp2 = new double[input.length];
+         ImageAugmentation.elasticDeform(input, temp1, rand, alpha,
+               sigma);
+         ImageAugmentation.applyRotation(temp1, temp2, rand,
+               maxDegrees);
+         ImageAugmentation.shift(temp2, output, rand);
+      });
+   }
+
+   public void addCombinedAugmentation3(int copies, Random rand,
+         double alpha, double sigma, double maxDegrees) {
+      augment(copies, (input, output) -> {
+         double[] temp1 = new double[input.length];
+         double[] temp2 = new double[input.length];
+         double[] temp3 = new double[input.length];
+         ImageAugmentation.elasticDeform(input, temp1, rand, alpha,
+               sigma);
+         ImageAugmentation.applyRotation(temp1, temp2, rand,
+               maxDegrees);
+         ImageAugmentation.shift(temp2, temp3, rand);
+         ImageAugmentation.applyBrightness(temp3, output, rand);
+      });
    }
 
    public void split(double trainRatio, Random rand) {
