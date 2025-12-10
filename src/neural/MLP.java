@@ -323,11 +323,11 @@ public class MLP {
       return mse;
    }
 
-   private double computeOneCycleLR(double initialLR, int epoch,
+   private double computeOneCycleLR(double initLR, int epoch,
          int maxEpochs, double pctUp) {
-      double lrLow = initialLR / 10.0;
-      double lrHigh = initialLR * 10.0;
-      double lrFinal = initialLR / 100.0;
+      double lrLow = initLR / 10.0;
+      double lrHigh = initLR * 10.0;
+      double lrFinal = initLR / 100.0;
       double t = epoch / (double) maxEpochs;
       if (t < pctUp) {
          // warm-up phase
@@ -358,35 +358,16 @@ public class MLP {
       double[] testMSE = new double[epochs];
       Matrix[] bestW = this.getWeightsCopy();
       Matrix[] bestB = this.getBiasesCopy();
-      Matrix[] prevW = this.getWeightsCopy();
-      Matrix[] prevB = this.getBiasesCopy();
-      double prevTestMSE = Double.MAX_VALUE;
-      double lrDecay = 0.90;
-      double minLR = 1e-6;
-      double relTol = 1e-3; // relative tolerance for MSE increase
-      int cooldown = 0; // epochs to wait before allowing LR reduction
-      double pctUp = 0.3;
+      double pctUp = 0.3; // 30% warm-up, 70% cool-down
       for (int epoch = 0; epoch < epochs; ++epoch) {
+         double lr = computeOneCycleLR(learningRate, epoch, epochs,
+               pctUp);
          predict(trX);
-         Matrix eTr = backPropagation(trY, learningRate);
+         Matrix eTr = backPropagation(trY, lr);
          trainMSE[epoch] = eTr.mult(eTr).sum() / nTrain;
          // evaluate on test set (no backprop!)
          Matrix eTe = teY.sub(predict(teX));
          testMSE[epoch] = eTe.mult(eTe).sum() / nTest;
-         if (epoch > 0 && (testMSE[epoch] - prevTestMSE)
-               / prevTestMSE > relTol && cooldown <= 0) {
-            this.w = prevW;
-            this.b = prevB;
-            learningRate = Math.max(learningRate * lrDecay, minLR);
-            testMSE[epoch] = prevTestMSE;
-            cooldown = 5;
-         } else {
-            // accept current weights
-            prevW = this.getWeightsCopy();
-            prevB = this.getBiasesCopy();
-            prevTestMSE = testMSE[epoch];
-            --cooldown;
-         }
          // early stopping check
          if (testMSE[epoch] < bestTestMSE) {
             bestTestMSE = testMSE[epoch];
@@ -474,5 +455,4 @@ public class MLP {
          bw.append("END");
       }
    }
-
 }

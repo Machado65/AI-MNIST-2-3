@@ -17,15 +17,17 @@ public class DefaultMLPConfig {
    public static void main(String[] args) {
       DataSetBuilder ds = new DataSetBuilder(DATASET_PATH, LABELS_PATH);
       ds.convertLabels(label -> (label == 2.0) ? 0.0 : 1.0);
-      ds.addCombinedAugmentation1(1, RandomProvider.of(SEED),
-            6.0, 2.0, 5.0);
+      ds.addElasticDeformation(6.0, 2.0, 1,
+            RandomProvider.of(SEED));
+      // ds.addCombinedAugmentation1(1, RandomProvider.of(SEED),
+      // 6.0, 2.0, 5.0);
       ds.split(0.8, RandomProvider.of(SEED));
       Matrix trX = ds.getTrX();
       Matrix trY = ds.getTrY();
       Matrix teX = ds.getTeX();
       Matrix teY = ds.getTeY();
-      Trainer trainer = new Trainer(new int[] { 400, 256, 1 },
-            0.002, 25000, 1200,
+      Trainer trainer = new Trainer(new int[] { 400, 48, 1 },
+            0.002, 16000, 800,
             new IDifferentiableFunction[] {
                   new LeakyReLU(),
                   new Sigmoid() },

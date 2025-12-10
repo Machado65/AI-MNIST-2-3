@@ -25,7 +25,7 @@ public class MLPConfig {
    private static final String LABELS_PATH = "data/largeLabels.csv";
    private static final long[] SEEDS = { 42, 97, 123, 456, 789, 1337,
          2023, 9999, 314159, 271828, 123456, 314159, 424242, 8675309 };
-   private static final long[] SEEDS1 = { 42, 1337, 2024, 9999 };
+   private static final long[] SEEDS1 = { 42, 123, 2024, 9999 };
    private static final long[] SEEDS2 = { 42 };
 
    public static void main(String[] args) {
@@ -62,11 +62,11 @@ public class MLPConfig {
       System.out.println("\n=== CONFIG 0 ===");
       StringBuilder augmentName = new StringBuilder("mlp_config0s");
       augmentName.append(seed);
-      DataSetBuilder ds = baseDataset(seed, false, true,
-            false, false, false,
+      DataSetBuilder ds = baseDataset(seed, false, false,
+            false, false, true,
             false, false, augmentName);
       runTraining(ds, new int[] { 400, 512, 1 },
-            0.002, 16000, 800, seed, augmentName);
+            0.002, 16000, 1200, seed, augmentName);
    }
 
    private static void config1(long seed) {
@@ -74,21 +74,21 @@ public class MLPConfig {
       StringBuilder augmentName = new StringBuilder("mlp_config1s");
       augmentName.append(seed);
       DataSetBuilder ds = baseDataset(seed, false, false,
-            false, false, false,
-            false, true, augmentName);
+            false, false, true,
+            false, false, augmentName);
       runTraining(ds, new int[] { 400, 256, 1 },
-            0.002, 16000, 800, seed, augmentName);
+            0.002, 16000, 1200, seed, augmentName);
    }
 
    private static void config2(long seed) {
       System.out.println("\n=== CONFIG 2 ===");
       StringBuilder augmentName = new StringBuilder("mlp_config2s");
       augmentName.append(seed);
-      DataSetBuilder ds = baseDataset(seed, false, true,
+      DataSetBuilder ds = baseDataset(seed, false, false,
             false, false, false,
-            false, false, augmentName);
+            true, false, augmentName);
       runTraining(ds, new int[] { 400, 256, 1 },
-            0.002, 16000, 800, seed, augmentName);
+            0.002, 16000, 1200, seed, augmentName);
    }
 
    private static void config3(long seed) {
@@ -96,8 +96,8 @@ public class MLPConfig {
       StringBuilder augmentName = new StringBuilder("mlp_config3s");
       augmentName.append(seed);
       DataSetBuilder ds = baseDataset(seed, false, false,
-            false, false, false,
-            false, true, augmentName);
+            false, false, true,
+            false, false, augmentName);
       runTraining(ds, new int[] { 400, 48, 1 },
             0.002, 16000, 800, seed, augmentName);
    }
@@ -106,9 +106,9 @@ public class MLPConfig {
       System.out.println("\n=== CONFIG 4 ===");
       StringBuilder augmentName = new StringBuilder("mlp_config4s");
       augmentName.append(seed);
-      DataSetBuilder ds = baseDataset(seed, false, true,
+      DataSetBuilder ds = baseDataset(seed, false, false,
             false, false, false,
-            false, false, augmentName);
+            true, false, augmentName);
       runTraining(ds, new int[] { 400, 48, 1 },
             0.002, 16000, 800, seed, augmentName);
    }
@@ -118,8 +118,8 @@ public class MLPConfig {
       StringBuilder augmentName = new StringBuilder("mlp_config5s");
       augmentName.append(seed);
       DataSetBuilder ds = baseDataset(seed, false, false,
-            false, false, false,
-            false, true, augmentName);
+            false, false, true,
+            false, false, augmentName);
       runTraining(ds, new int[] { 400, 64, 1 },
             0.002, 16000, 800, seed, augmentName);
    }
@@ -128,9 +128,9 @@ public class MLPConfig {
       System.out.println("\n=== CONFIG 6 ===");
       StringBuilder augmentName = new StringBuilder("mlp_config6s");
       augmentName.append(seed);
-      DataSetBuilder ds = baseDataset(seed, false, true,
+      DataSetBuilder ds = baseDataset(seed, false, false,
             false, false, false,
-            false, false, augmentName);
+            true, false, augmentName);
       runTraining(ds, new int[] { 400, 64, 1 },
             0.002, 16000, 800, seed, augmentName);
    }
@@ -140,8 +140,8 @@ public class MLPConfig {
       StringBuilder augmentName = new StringBuilder("mlp_config7s");
       augmentName.append(seed);
       DataSetBuilder ds = baseDataset(seed, false, false,
-            false, false, false,
-            false, true, augmentName);
+            false, false, true,
+            false, false, augmentName);
       runTraining(ds, new int[] { 400, 128, 1 },
             0.002, 16000, 800, seed, augmentName);
    }
@@ -150,9 +150,9 @@ public class MLPConfig {
       System.out.println("\n=== CONFIG 8 ===");
       StringBuilder augmentName = new StringBuilder("mlp_config8s");
       augmentName.append(seed);
-      DataSetBuilder ds = baseDataset(seed, false, true,
+      DataSetBuilder ds = baseDataset(seed, false, false,
             false, false, false,
-            false, false, augmentName);
+            true, false, augmentName);
       runTraining(ds, new int[] { 400, 128, 1 },
             0.002, 16000, 800, seed, augmentName);
    }
@@ -161,7 +161,7 @@ public class MLPConfig {
       System.out.println("\n=== CONFIG 9 ===");
       StringBuilder augmentName = new StringBuilder("mlp_config9s");
       augmentName.append(seed);
-      DataSetBuilder ds = baseDataset(seed, true, false,
+      DataSetBuilder ds = baseDataset(seed, false, true,
             false, false, false,
             false, false, augmentName);
       runTraining(ds, new int[] { 400, 64, 32, 1 },
@@ -285,7 +285,7 @@ public class MLPConfig {
       }
       try {
          configName.insert(0, "src/ml/models/");
-         configName.append("large");
+         configName.append("largeV2");
          configName.append(".dat");
          trainer.getMLP().saveModel(configName.toString(),
                evalResult.getOptimalThreshold());
