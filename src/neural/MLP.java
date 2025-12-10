@@ -8,9 +8,12 @@ import java.io.IOException;
 import java.util.Arrays;
 import java.util.Random;
 
+import math.Array;
 import math.Matrix;
-import ml.training.OptimalThreshold;
-import ml.training.TrainResult;
+import ml.training.config.DataSet;
+import ml.training.config.TrainConfig;
+import ml.training.result.TrainResult;
+import ml.training.threshold.OptimalThreshold;
 import neural.activation.IDifferentiableFunction;
 import neural.activation.LeakyReLU;
 import neural.activation.ReLU;
@@ -347,37 +350,49 @@ public class MLP {
     * @param patience
     * @return
     */
-   public TrainResult train(Matrix trX, Matrix trY, Matrix teX,
-         Matrix teY, double learningRate, int epochs, int patience) {
+   public TrainResult train(TrainConfig t) {
+      DataSet tr = t.getTr();
+      DataSet te = t.getTe();
+      Matrix trX = tr.getX();
+      Matrix trY = tr.getY();
+      Matrix teX = te.getX();
+      Matrix teY = te.getY();
       int nTrain = trX.rows();
       int nTest = teX.rows();
       int noImprove = 0;
       int bestEpoch = 0;
       double bestTestMSE = Double.MAX_VALUE;
-      double[] trainMSE = new double[epochs];
-      double[] testMSE = new double[epochs];
+      double[] trainMSE = new double[t.getEpochs()];
+      double[] testMSE = new double[t.getEpochs()];
       Matrix[] bestW = this.getWeightsCopy();
       Matrix[] bestB = this.getBiasesCopy();
       double pctUp = 0.3; // 30% warm-up, 70% cool-down
-      for (int epoch = 0; epoch < epochs; ++epoch) {
-         double lr = computeOneCycleLR(learningRate, epoch, epochs,
-               pctUp);
-         predict(trX);
-         Matrix eTr = backPropagation(trY, lr);
-         trainMSE[epoch] = eTr.mult(eTr).sum() / nTrain;
-         // evaluate on test set (no backprop!)
+      int batchSize = 64;
+      Array arr = new Array(nTrain);
+      arr.initSequential(nTrain);
+      for (int e = 0; e < t.getEpochs(); ++e) {
+         double lr = computeOneCycleLR(t.getLearningRate(), e,
+               t.getEpochs(), pctUp);
+         arr.shuffleArray(t.getRand());
+         for (int start = 0; start < nTrain; start += batchSize) {
+            int end = Math.min(start + batchSize, nTrain);
+            predict(trX.rows(arr, start, end));
+            backPropagation(trY.rows(arr, start, end), lr);
+         }
+         Matrix eTr = trY.sub(predict(trX));
+         trainMSE[e] = eTr.mult(eTr).sum() / nTrain;
          Matrix eTe = teY.sub(predict(teX));
-         testMSE[epoch] = eTe.mult(eTe).sum() / nTest;
+         testMSE[e] = eTe.mult(eTe).sum() / nTest;
          // early stopping check
-         if (testMSE[epoch] < bestTestMSE) {
-            bestTestMSE = testMSE[epoch];
+         if (testMSE[e] < bestTestMSE) {
+            bestTestMSE = testMSE[e];
             noImprove = 0;
-            bestEpoch = epoch;
+            bestEpoch = e;
             bestW = this.getWeightsCopy();
             bestB = this.getBiasesCopy();
          } else {
             ++noImprove;
-            if (noImprove >= patience) {
+            if (noImprove >= t.getPatience()) {
                break;
             }
          }

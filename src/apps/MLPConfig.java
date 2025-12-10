@@ -1,11 +1,14 @@
 package apps;
 
 import java.util.Arrays;
+import java.util.Random;
 
 import math.Matrix;
 import ml.data.DataSetBuilder;
-import ml.training.EvaluationResult;
-import ml.training.Trainer;
+import ml.training.config.DataSet;
+import ml.training.config.TrainConfig;
+import ml.training.core.Trainer;
+import ml.training.result.EvaluationResult;
 import neural.activation.IDifferentiableFunction;
 import neural.activation.LeakyReLU;
 import neural.activation.Sigmoid;
@@ -21,12 +24,12 @@ import utils.RandomProvider;
  * and ease of experimentation.
  */
 public class MLPConfig {
-   private static final String DATASET_PATH = "data/largeDataset.csv";
-   private static final String LABELS_PATH = "data/largeLabels.csv";
+   private static final String DATASET_PATH = "data/datasetC.csv";
+   private static final String LABELS_PATH = "data/labels.csv";
    private static final long[] SEEDS = { 42, 97, 123, 456, 789, 1337,
          2023, 9999, 314159, 271828, 123456, 314159, 424242, 8675309 };
    private static final long[] SEEDS1 = { 42, 123, 2024, 9999 };
-   private static final long[] SEEDS2 = { 42 };
+   private static final long[] SEEDS2 = { 9999 };
 
    public static void main(String[] args) {
       for (long seed : SEEDS1) {
@@ -46,9 +49,9 @@ public class MLPConfig {
     * @param seed Random initialization seed.
     */
    public static void runAllConfigs(long seed) {
-      config0(seed);
-      config1(seed);
-      config2(seed);
+      // config0(seed);
+      // config1(seed);
+      // config2(seed);
       config3(seed);
       config4(seed);
       config5(seed);
@@ -66,7 +69,8 @@ public class MLPConfig {
             false, false, true,
             false, false, augmentName);
       runTraining(ds, new int[] { 400, 512, 1 },
-            0.002, 16000, 1200, seed, augmentName);
+            0.002, 16000, 1200, seed, augmentName,
+            RandomProvider.of(seed));
    }
 
    private static void config1(long seed) {
@@ -77,18 +81,19 @@ public class MLPConfig {
             false, false, true,
             false, false, augmentName);
       runTraining(ds, new int[] { 400, 256, 1 },
-            0.002, 16000, 1200, seed, augmentName);
+            0.002, 16000, 1200, seed, augmentName,
+            RandomProvider.of(seed));
    }
 
    private static void config2(long seed) {
       System.out.println("\n=== CONFIG 2 ===");
       StringBuilder augmentName = new StringBuilder("mlp_config2s");
       augmentName.append(seed);
-      DataSetBuilder ds = baseDataset(seed, false, false,
-            false, false, false,
-            true, false, augmentName);
+      DataSetBuilder ds = baseDataset(seed, false, false, false, false,
+            false, true, false, augmentName);
       runTraining(ds, new int[] { 400, 256, 1 },
-            0.002, 16000, 1200, seed, augmentName);
+            0.002, 16000, 1200, seed, augmentName,
+            RandomProvider.of(seed));
    }
 
    private static void config3(long seed) {
@@ -96,10 +101,11 @@ public class MLPConfig {
       StringBuilder augmentName = new StringBuilder("mlp_config3s");
       augmentName.append(seed);
       DataSetBuilder ds = baseDataset(seed, false, false,
-            false, false, true,
+            false, false, false,
             false, false, augmentName);
       runTraining(ds, new int[] { 400, 48, 1 },
-            0.002, 16000, 800, seed, augmentName);
+            0.002, 16000, 800, seed, augmentName,
+            RandomProvider.of(seed));
    }
 
    private static void config4(long seed) {
@@ -110,7 +116,8 @@ public class MLPConfig {
             false, false, false,
             true, false, augmentName);
       runTraining(ds, new int[] { 400, 48, 1 },
-            0.002, 16000, 800, seed, augmentName);
+            0.002, 16000, 800, seed, augmentName,
+            RandomProvider.of(seed));
    }
 
    private static void config5(long seed) {
@@ -121,7 +128,8 @@ public class MLPConfig {
             false, false, true,
             false, false, augmentName);
       runTraining(ds, new int[] { 400, 64, 1 },
-            0.002, 16000, 800, seed, augmentName);
+            0.002, 16000, 800, seed, augmentName,
+            RandomProvider.of(seed));
    }
 
    private static void config6(long seed) {
@@ -132,7 +140,8 @@ public class MLPConfig {
             false, false, false,
             true, false, augmentName);
       runTraining(ds, new int[] { 400, 64, 1 },
-            0.002, 16000, 800, seed, augmentName);
+            0.002, 16000, 800, seed, augmentName,
+            RandomProvider.of(seed));
    }
 
    private static void config7(long seed) {
@@ -143,7 +152,8 @@ public class MLPConfig {
             false, false, true,
             false, false, augmentName);
       runTraining(ds, new int[] { 400, 128, 1 },
-            0.002, 16000, 800, seed, augmentName);
+            0.002, 16000, 800, seed, augmentName,
+            RandomProvider.of(seed));
    }
 
    private static void config8(long seed) {
@@ -154,7 +164,8 @@ public class MLPConfig {
             false, false, false,
             true, false, augmentName);
       runTraining(ds, new int[] { 400, 128, 1 },
-            0.002, 16000, 800, seed, augmentName);
+            0.002, 16000, 800, seed, augmentName,
+            RandomProvider.of(seed));
    }
 
    private static void config9(long seed) {
@@ -165,7 +176,8 @@ public class MLPConfig {
             false, false, false,
             false, false, augmentName);
       runTraining(ds, new int[] { 400, 64, 32, 1 },
-            0.002, 16000, 800, seed, augmentName);
+            0.002, 16000, 800, seed, augmentName,
+            RandomProvider.of(seed));
    }
 
    // ==============================================================
@@ -243,14 +255,9 @@ public class MLPConfig {
     * @param seed       Random seed
     * @param configName Name used when saving the model
     */
-   private static void runTraining(
-         DataSetBuilder ds,
-         int[] topology,
-         double lr,
-         int epochs,
-         int patience,
-         long seed,
-         StringBuilder configName) {
+   private static void runTraining(DataSetBuilder ds, int[] topology,
+         double lr, int epochs, int patience, long seed,
+         StringBuilder configName, Random rand) {
       System.out.println("Topology     : " + Arrays.toString(topology));
       System.out.println("Learning rate: " + lr);
       System.out.println("Epochs       : " + epochs);
@@ -266,18 +273,13 @@ public class MLPConfig {
       for (int i = 0; i < n; ++i) {
          activations[i] = new LeakyReLU();
       }
-      // only last activation can be sigmoid as well since we are doing binary
-      // classification
       activations[n] = new Sigmoid();
-      Trainer trainer = new Trainer(
-            topology,
-            lr,
-            epochs,
-            patience,
-            activations,
-            RandomProvider.of(seed));
-      System.out.println(trainer.train(trX, trY, teX, teY));
-      EvaluationResult evalResult = trainer.evaluate(teX, teY);
+      Trainer trainer = new Trainer(topology, activations,
+            new TrainConfig(new DataSet(trX, trY),
+                  new DataSet(teX, teY), lr, epochs, patience, rand),
+            rand);
+      System.out.println(trainer.train());
+      EvaluationResult evalResult = trainer.evaluate();
       System.out.println(evalResult);
       if (evalResult.getAccuracy() < 0.97) {
          System.out.println("WARNING: Low accuracy detected!");

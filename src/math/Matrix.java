@@ -151,6 +151,31 @@ public class Matrix {
    }
 
    /**
+    * Creates a dropout mask matrix with 0s and 1s.
+    * Each element is 0 with probability dropoutRate, 1 otherwise.
+    * Used for dropout regularization during training.
+    *
+    * @param rows        the number of rows
+    * @param cols        the number of columns
+    * @param dropoutRate probability of dropping a neuron (0.0 to 1.0)
+    * @param rand        Random instance for reproducibility
+    * @return a new dropout mask matrix
+    */
+   public static Matrix randMask(int rows, int cols, double dropoutRate,
+         Random rand) {
+      Matrix out = new Matrix(rows, cols);
+      double keepProb = 1.0 - dropoutRate;
+      for (int i = 0; i < rows; ++i) {
+         for (int j = 0; j < cols; ++j) {
+            out.data[i][j] = (rand.nextDouble() < keepProb)
+                  ? (1.0 / keepProb)
+                  : 0.0;
+         }
+      }
+      return out;
+   }
+
+   /**
     * Gets the value at the specified position in the matrix.
     *
     * @param row the row index
@@ -188,6 +213,26 @@ public class Matrix {
       this.data = other.data;
       this.rows = other.rows;
       this.cols = other.cols;
+   }
+
+   /**
+    * Extracts specific rows from the matrix using indices from an Array.
+    * Creates a new matrix with rows [start, end) from the shuffled indices.
+    * Used for mini-batch training.
+    *
+    * @param indices Array containing row indices (potentially shuffled)
+    * @param start   starting index in the indices array (inclusive)
+    * @param end     ending index in the indices array (exclusive)
+    * @return a new matrix containing the specified rows
+    */
+   public Matrix rows(Array indices, int start, int end) {
+      int batchSize = end - start;
+      Matrix result = new Matrix(batchSize, this.cols);
+      for (int i = 0; i < batchSize; ++i) {
+         System.arraycopy(this.data[indices.get(start + i)], 0,
+               result.data[i], 0, this.cols);
+      }
+      return result;
    }
 
    // ==============================================================
