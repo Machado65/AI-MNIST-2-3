@@ -167,9 +167,8 @@ public class ImageAugmentation {
       }
    }
 
-   public static double[] gaussianNoise(double[] input, double stdDev,
-         Random rand) {
-      double[] output = new double[IMAGE_PIXELS];
+   public static double[] gaussianNoise(double[] input, double[] output,
+         double stdDev, Random rand) {
       for (int i = 0; i < IMAGE_PIXELS; ++i) {
          double noisy = input[i] + rand.nextGaussian() * stdDev;
          output[i] = Math.clamp(noisy, 0.0, 1.0);

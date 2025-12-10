@@ -159,7 +159,6 @@ public class MLP {
     */
    public MLP(int[] layerSizes, IDifferentiableFunction[] act,
          Random rand) {
-      this.optThreshold = new OptimalThreshold(0.5);
       this.nLayers = layerSizes.length;
       this.nLayers1 = this.nLayers - 1;
       // setup activation by layer
@@ -180,6 +179,7 @@ public class MLP {
          }
          this.b[i] = new Matrix(biasData);
       }
+      this.optThreshold = new OptimalThreshold(0.5); // default threshold
    }
 
    /**
@@ -323,8 +323,23 @@ public class MLP {
       return mse;
    }
 
+   private double computeOneCycleLR(double initialLR, int epoch,
+         int maxEpochs, double pctUp) {
+      double lrLow = initialLR / 10.0;
+      double lrHigh = initialLR * 10.0;
+      double lrFinal = initialLR / 100.0;
+      double t = epoch / (double) maxEpochs;
+      if (t < pctUp) {
+         // warm-up phase
+         return lrLow + (t / pctUp) * (lrHigh - lrLow);
+      } else {
+         // cool-down phase
+         return lrHigh - (t - pctUp) / (1.0 - pctUp)
+               * (lrHigh - lrFinal);
+      }
+   }
+
    /**
-    *
     * @param x
     * @param y
     * @param learningRate
@@ -341,25 +356,42 @@ public class MLP {
       double bestTestMSE = Double.MAX_VALUE;
       double[] trainMSE = new double[epochs];
       double[] testMSE = new double[epochs];
-      Matrix[] bestW = null;
-      Matrix[] bestB = null;
+      Matrix[] bestW = this.getWeightsCopy();
+      Matrix[] bestB = this.getBiasesCopy();
+      Matrix[] prevW = this.getWeightsCopy();
+      Matrix[] prevB = this.getBiasesCopy();
+      double prevTestMSE = Double.MAX_VALUE;
+      double lrDecay = 0.90;
+      double minLR = 1e-6;
+      double relTol = 1e-3; // relative tolerance for MSE increase
+      int cooldown = 0; // epochs to wait before allowing LR reduction
+      double pctUp = 0.3;
       for (int epoch = 0; epoch < epochs; ++epoch) {
          predict(trX);
          Matrix eTr = backPropagation(trY, learningRate);
          trainMSE[epoch] = eTr.mult(eTr).sum() / nTrain;
-         // trainMSE[epoch]= eTr.dot(eTr.transpose()).get(0,0)
-         // / nTrain;
          // evaluate on test set (no backprop!)
          Matrix eTe = teY.sub(predict(teX));
          testMSE[epoch] = eTe.mult(eTe).sum() / nTest;
-         // testMSE[epoch]= eTe.dot(eTe.transpose()).get(0,0)
-         // / nTest;
+         if (epoch > 0 && (testMSE[epoch] - prevTestMSE)
+               / prevTestMSE > relTol && cooldown <= 0) {
+            this.w = prevW;
+            this.b = prevB;
+            learningRate = Math.max(learningRate * lrDecay, minLR);
+            testMSE[epoch] = prevTestMSE;
+            cooldown = 5;
+         } else {
+            // accept current weights
+            prevW = this.getWeightsCopy();
+            prevB = this.getBiasesCopy();
+            prevTestMSE = testMSE[epoch];
+            --cooldown;
+         }
          // early stopping check
          if (testMSE[epoch] < bestTestMSE) {
             bestTestMSE = testMSE[epoch];
             noImprove = 0;
             bestEpoch = epoch;
-            // save best weights and biases
             bestW = this.getWeightsCopy();
             bestB = this.getBiasesCopy();
          } else {

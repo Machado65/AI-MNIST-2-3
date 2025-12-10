@@ -101,7 +101,7 @@ public class DataSetBuilder {
 
    public void addGaussianNoise(double stdDev, int copies, Random rand) {
       augment(copies, (input, output) -> ImageAugmentation.gaussianNoise(
-            input, stdDev, rand));
+            input, output, stdDev, rand));
    }
 
    public void addElasticDeformation(double alpha, double sigma,
@@ -134,30 +134,22 @@ public class DataSetBuilder {
    }
 
    public void addCombinedAugmentation2(int copies, Random rand,
-         double alpha, double sigma, double maxDegrees) {
+         double stdDev, double alpha, double sigma) {
       augment(copies, (input, output) -> {
          double[] temp1 = new double[input.length];
-         double[] temp2 = new double[input.length];
          ImageAugmentation.elasticDeform(input, temp1, rand, alpha,
                sigma);
-         ImageAugmentation.applyRotation(temp1, temp2, rand,
-               maxDegrees);
-         ImageAugmentation.shift(temp2, output, rand);
+         ImageAugmentation.gaussianNoise(temp1, output, stdDev, rand);
       });
    }
 
    public void addCombinedAugmentation3(int copies, Random rand,
-         double alpha, double sigma, double maxDegrees) {
+         double stdDev, double maxDegrees) {
       augment(copies, (input, output) -> {
          double[] temp1 = new double[input.length];
-         double[] temp2 = new double[input.length];
-         double[] temp3 = new double[input.length];
-         ImageAugmentation.elasticDeform(input, temp1, rand, alpha,
-               sigma);
-         ImageAugmentation.applyRotation(temp1, temp2, rand,
+         ImageAugmentation.gaussianNoise(input, temp1, stdDev, rand);
+         ImageAugmentation.applyRotation(temp1, output, rand,
                maxDegrees);
-         ImageAugmentation.shift(temp2, temp3, rand);
-         ImageAugmentation.applyBrightness(temp3, output, rand);
       });
    }
 
