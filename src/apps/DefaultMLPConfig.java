@@ -12,8 +12,8 @@ import neural.activation.Sigmoid;
 import utils.RandomProvider;
 
 public class DefaultMLPConfig {
-   private static final String DATASET_PATH = "data/largeDataset.csv";
-   private static final String LABELS_PATH = "data/largeLabels.csv";
+   private static final String DATASET_PATH = "data/mediumDataset.csv";
+   private static final String LABELS_PATH = "data/mediumLabels.csv";
    private static final long SEED = 424242;
 
    public static void main(String[] args) {
