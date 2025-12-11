@@ -3,7 +3,6 @@ package ml.training.core;
 import java.util.Random;
 
 import math.Matrix;
-import ml.training.config.DataSet;
 import ml.training.config.TrainConfig;
 import ml.training.result.EvaluationMetrics;
 import ml.training.result.EvaluationResult;
@@ -18,8 +17,8 @@ public class Trainer {
    private MLP mlp;
 
    public Trainer(int[] topology, IDifferentiableFunction[] act,
-         TrainConfig t, Random rand) {
-      this.config = t;
+         TrainConfig config, Random rand) {
+      this.config = new TrainConfig(config);
       this.mlp = new MLP(topology, act, rand);
    }
 
@@ -74,9 +73,8 @@ public class Trainer {
    }
 
    public EvaluationResult evaluate() {
-      DataSet te = config.getTe();
-      Matrix teX = te.getX();
-      Matrix teY = te.getY();
+      Matrix teX = config.getTe().getX();
+      Matrix teY = config.getTe().getY();
       Matrix pred = predict(teX);
       int n = teX.rows();
       OptimalThreshold optimalThreshold = findOptimalThreshold(pred,

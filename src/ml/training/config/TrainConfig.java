@@ -20,6 +20,15 @@ public class TrainConfig {
       this.rand = rand;
    }
 
+   public TrainConfig(TrainConfig other) {
+      this.tr = new DataSet(other.tr);
+      this.te = new DataSet(other.te);
+      this.learningRate = other.learningRate;
+      this.epochs = other.epochs;
+      this.patience = other.patience;
+      this.rand = other.rand;
+   }
+
    public DataSet getTr() {
       return this.tr;
    }

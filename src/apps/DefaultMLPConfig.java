@@ -1,7 +1,5 @@
 package apps;
 
-import java.util.Random;
-
 import math.Matrix;
 import ml.data.DataSetBuilder;
 import ml.training.config.DataSet;
@@ -16,30 +14,28 @@ import utils.RandomProvider;
 public class DefaultMLPConfig {
    private static final String DATASET_PATH = "data/largeDataset.csv";
    private static final String LABELS_PATH = "data/largeLabels.csv";
-   private static final long SEED = 42;
-   private static Random rand = RandomProvider.of(SEED);
+   private static final long SEED = 424242;
 
    public static void main(String[] args) {
       DataSetBuilder ds = new DataSetBuilder(DATASET_PATH, LABELS_PATH);
       ds.convertLabels(label -> (label == 2.0) ? 0.0 : 1.0);
-      ds.addElasticDeformation(6.0, 2.0, 1, rand);
+      ds.addElasticDeformation(6.0, 2.0, 1,
+            RandomProvider.of(SEED));
       // ds.addCombinedAugmentation1(1, RandomProvider.of(SEED),
       // 6.0, 2.0, 5.0);
-      ds.split(0.8, rand);
+      ds.split(0.8, RandomProvider.of(SEED));
       Matrix trX = ds.getTrX();
       Matrix trY = ds.getTrY();
       Matrix teX = ds.getTeX();
       Matrix teY = ds.getTeY();
-      double lr = 0.002;
-      int epochs = 16000;
-      int patience = 800;
       Trainer trainer = new Trainer(new int[] { 400, 48, 1 },
             new IDifferentiableFunction[] {
                   new LeakyReLU(),
                   new Sigmoid() },
             new TrainConfig(new DataSet(trX, trY), new DataSet(teX, teY),
-                  lr, epochs, patience, rand),
-            rand);
+                  0.002, 16000, 800,
+                  RandomProvider.of(SEED)),
+            RandomProvider.of(SEED));
       System.out.println(trainer.train());
       EvaluationResult evalResult = trainer.evaluate();
       System.out.println(evalResult);

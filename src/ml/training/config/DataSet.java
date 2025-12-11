@@ -11,6 +11,11 @@ public class DataSet {
       this.y = y;
    }
 
+   public DataSet(DataSet other) {
+      this.x = new Matrix(other.x);
+      this.y = new Matrix(other.y);
+   }
+
    public Matrix getX() {
       return this.x;
    }
