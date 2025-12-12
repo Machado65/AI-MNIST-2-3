@@ -289,19 +289,14 @@ public class MLP {
 
    private void updateLayerSGD(int l, Matrix delta, double lr,
          double mom, double clipNorm) {
-      // Gradiente: yp[l]^T * delta
-      // Delta com momentum: lr * grad + mom * prevDelta
       Matrix deltaW = this.yp[l].transpose().dot(delta).mult(lr)
             .add(this.dWPrev[l].mult(mom));
       Matrix deltaB = delta.sumColumns().mult(lr)
             .add(this.dBPrev[l].mult(mom));
-      // Gradient clipping (clip o UPDATE, não o gradiente puro)
       deltaW = clipGradient(deltaW, clipNorm);
       deltaB = clipGradient(deltaB, clipNorm);
-      // Atualizar pesos
       this.w[l].addInPlace(deltaW);
       this.b[l].addInPlaceRowVector(deltaB);
-      // Armazenar para próximo momentum
       this.dWPrev[l] = deltaW;
       this.dBPrev[l] = deltaB;
    }
