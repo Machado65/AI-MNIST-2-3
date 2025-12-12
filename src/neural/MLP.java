@@ -40,11 +40,6 @@ public class MLP {
    private Matrix[] yp; // outputs for each layer (y predicted)
    private Matrix[] dWPrev; // previous weight updates for momentum
    private Matrix[] dBPrev; // previous bias updates for momentum
-   private Matrix[] mW; // Adam moments for weights
-   private Matrix[] vW; // Adam moments for weights
-   private Matrix[] mB; // Adam moments for biases
-   private Matrix[] vB; // Adam moments for biases
-   private int adamT = 0; // timestep
    private final IDifferentiableFunction[] act; // activation functions for each layer
    private final int nLayers;
    private final int nLayers1;
@@ -162,16 +157,6 @@ public class MLP {
             this.dBPrev[i] = new Matrix(this.b[i].rows(),
                   this.b[i].cols());
          }
-         this.mW = new Matrix[this.nLayers1];
-         this.vW = new Matrix[this.nLayers1];
-         this.mB = new Matrix[this.nLayers1];
-         this.vB = new Matrix[this.nLayers1];
-         for (int i = 0; i < this.nLayers1; ++i) {
-            mW[i] = new Matrix(this.w[i].rows(), this.w[i].cols());
-            vW[i] = new Matrix(this.w[i].rows(), this.w[i].cols());
-            mB[i] = new Matrix(this.b[i].rows(), this.b[i].cols());
-            vB[i] = new Matrix(this.b[i].rows(), this.b[i].cols());
-         }
       }
    }
 
@@ -213,16 +198,6 @@ public class MLP {
                this.w[i].cols());
          this.dBPrev[i] = new Matrix(this.b[i].rows(),
                this.b[i].cols());
-      }
-      this.mW = new Matrix[this.nLayers1];
-      this.vW = new Matrix[this.nLayers1];
-      this.mB = new Matrix[this.nLayers1];
-      this.vB = new Matrix[this.nLayers1];
-      for (int i = 0; i < this.nLayers1; ++i) {
-         mW[i] = new Matrix(this.w[i].rows(), this.w[i].cols());
-         vW[i] = new Matrix(this.w[i].rows(), this.w[i].cols());
-         mB[i] = new Matrix(this.b[i].rows(), this.b[i].cols());
-         vB[i] = new Matrix(this.b[i].rows(), this.b[i].cols());
       }
       // default threshold
       this.optThreshold = new OptimalThreshold(0.5);
@@ -300,104 +275,50 @@ public class MLP {
    }
 
    private Matrix computeDeltaForLayer(int l, int l1, Matrix e) {
-      // delta = e .* yp[l+1] .* (1-yp[l+1])
+      // delta = e .* z[l+1] .* (1-yp[l+1])
       return e.mult(this.yp[l1].apply(this.act[l].derivative()));
    }
 
+   private Matrix clipGradient(Matrix g, double clipNorm) {
+      double norm = Math.sqrt(g.mult(g).sum());
+      if (norm > clipNorm && norm > 0.0) {
+         return g.mult(clipNorm / norm);
+      }
+      return g;
+   }
+
    private void updateLayerSGD(int l, Matrix delta, double lr,
-         double mom) {
-      // w[l] += yp[l]^T * delta * lr + prevW[l] * mom
+         double mom, double clipNorm) {
+      // Gradiente: yp[l]^T * delta
+      // Delta com momentum: lr * grad + mom * prevDelta
       Matrix deltaW = this.yp[l].transpose().dot(delta).mult(lr)
             .add(this.dWPrev[l].mult(mom));
-      this.w[l].addInPlace(deltaW);
-      // b[l] += sum(delta) * lr + prevB[l] * mom
       Matrix deltaB = delta.sumColumns().mult(lr)
             .add(this.dBPrev[l].mult(mom));
+      // Gradient clipping (clip o UPDATE, não o gradiente puro)
+      deltaW = clipGradient(deltaW, clipNorm);
+      deltaB = clipGradient(deltaB, clipNorm);
+      // Atualizar pesos
+      this.w[l].addInPlace(deltaW);
       this.b[l].addInPlaceRowVector(deltaB);
-      // store weight updates for momentum
+      // Armazenar para próximo momentum
       this.dWPrev[l] = deltaW;
       this.dBPrev[l] = deltaB;
    }
 
-   private void updateLayerAdam(int l, Matrix delta, double lr,
-         double beta1, double beta2, double eps) {
-      int batchSize = delta.rows();
-      // averaged gradients
-      Matrix gradW = this.yp[l].transpose().dot(delta)
-            .mult(1.0 / batchSize);
-      Matrix gradB = delta.sumColumns().mult(1.0 / batchSize);
-      // m = beta1 * m + (1 - beta1) * grad
-      this.mW[l] = this.mW[l].mult(beta1).add(gradW.mult(1.0 - beta1));
-      this.mB[l] = this.mB[l].mult(beta1).add(gradB.mult(1.0 - beta1));
-      // v = beta2 * v + (1 - beta2) * (grad ⊙ grad)
-      this.vW[l] = this.vW[l].mult(beta2).add(gradW.mult(gradW)
-            .mult(1.0 - beta2));
-      this.vB[l] = this.vB[l].mult(beta2).add(gradB.mult(gradB)
-            .mult(1.0 - beta2));
-      // bias corrections
-      double biasCorr1 = 1.0 - Math.pow(beta1, this.adamT);
-      double biasCorr2 = 1.0 - Math.pow(beta2, this.adamT);
-      // protect against division by zero
-      biasCorr1 = Math.max(biasCorr1, 1e-16);
-      biasCorr2 = Math.max(biasCorr2, 1e-16);
-      // m_hat = m / biasCorr1
-      Matrix mHatW = this.mW[l].mult(1.0 / biasCorr1);
-      Matrix mHatB = this.mB[l].mult(1.0 / biasCorr1);
-      // v_hat = v / biasCorr2
-      Matrix vHatW = this.vW[l].mult(1.0 / biasCorr2);
-      Matrix vHatB = this.vB[l].mult(1.0 / biasCorr2);
-      // denom = sqrt(v_hat) + eps
-      Matrix denomW = vHatW.apply(v -> Math.sqrt(v) + eps);
-      Matrix denomB = vHatB.apply(v -> Math.sqrt(v) + eps);
-      // Step: m_hat / denom * lr
-      Matrix stepW = mHatW.div(denomW).mult(lr);
-      Matrix stepB = mHatB.div(denomB).mult(lr);
-      this.w[l].addInPlace(stepW);
-      this.b[l].addInPlaceRowVector(stepB);
-   }
-
-   public Matrix backPropagationSGD(Matrix y, double lr, double mom) {
+   public Matrix backPropagationSGD(Matrix y, double lr, double mom,
+         double clipNorm) {
       int n = this.nLayers - 2;
       int n1 = n + 1;
       Matrix e = y.sub(this.yp[n1]);
       Matrix eOut = new Matrix(e);
       Matrix delta = this.computeDeltaForLayer(n, n1, e);
-      this.updateLayerSGD(n, delta, lr, mom);
+      this.updateLayerSGD(n, delta, lr, mom, clipNorm);
       for (int l = n - 1; l >= 0; --l) {
          int l1 = l + 1;
          e = delta.dot(this.w[l1].transpose());
          delta = this.computeDeltaForLayer(l, l1, e);
-         this.updateLayerSGD(l, delta, lr, mom);
-      }
-      return eOut;
-   }
-
-   /**
-    * Performs backpropagation to update weights and biases based on the error.
-    * Uses the generalized delta rule to compute gradients and update parameters.
-    *
-    * @param y  target output matrix (ground truth labels)
-    * @param lr learning rate for weight updates
-    */
-   public Matrix backPropagationAdam(Matrix y, double lr, double beta1,
-         double beta2, double eps) {
-      // back propagation using generalized delta rule
-      int n = this.nLayers - 2;
-      int n1 = n + 1;
-      // output layer
-      // e = y - yp[l+1]
-      Matrix e = y.sub(this.yp[n1]);
-      Matrix eOut = new Matrix(e);
-      Matrix delta = this.computeDeltaForLayer(n, n1, e);
-      this.updateLayerAdam(n, delta, lr, beta1, beta2, eps);
-      // hidden layers
-      for (int l = n - 1; l >= 0; --l) {
-         int l1 = l + 1;
-         // e = delta * w[l+1]^T
-         e = delta.dot(this.w[l1].transpose());
-         delta = this.computeDeltaForLayer(l, l1, e);
-         this.updateLayerAdam(l, delta, lr, beta1, beta2, eps);
-
+         this.updateLayerSGD(l, delta, lr, mom, clipNorm);
       }
       return eOut;
    }
@@ -423,7 +344,8 @@ public class MLP {
          // forward propagation
          predict(x);
          // backward propagation
-         Matrix e = backPropagationSGD(y, learningRate, mom);
+         Matrix e = backPropagationSGD(y, learningRate, mom,
+               1.0);
          // mse
          mse[epoch] = e.mult(e).sum() / nSamples;
       }
@@ -439,7 +361,7 @@ public class MLP {
    private double computeOneCycleLR(double initLR, int epoch,
          int maxEpochs, double pctUp) {
       double lrLow = initLR / 10.0;
-      double lrHigh = initLR * 10.0;
+      double lrHigh = initLR * 3.0;
       double lrFinal = initLR / 100.0;
       double t = epoch / (double) maxEpochs;
       if (t < pctUp) {
@@ -477,26 +399,29 @@ public class MLP {
       double[] testMSE = new double[epochs];
       Matrix[] bestW = this.getWeightsCopy();
       Matrix[] bestB = this.getBiasesCopy();
-      // double pctUp = 0.3; // 30% warm-up, 70% cool-down
-      int batchSize = 64;
+      double minDelta = 1e-4;
+      double pctUp = 0.3; // 30% warm-up, 70% cool-down
       double nom = 0.9;
+      double clipNorm = 5.0;
       Array arr = new Array(nTrain);
       arr.initSequential(nTrain);
       for (int epoch = 0; epoch < epochs; ++epoch) {
-         double lr = this.computeCosineAnnealingLR(learningRate,
-               learningRate / 100.0, epoch, epochs);
+         double lr = this.computeOneCycleLR(learningRate, epoch, epochs,
+               pctUp);
          arr.shuffleArray(config.getRand());
+         int batchSize = Math.min(64 + (epoch / 10) * 32, 256);
          for (int start = 0; start < nTrain; start += batchSize) {
             int end = Math.min(start + batchSize, nTrain);
             predict(trX.rows(arr, start, end));
-            backPropagationSGD(trY.rows(arr, start, end), lr, nom);
+            backPropagationSGD(trY.rows(arr, start, end), lr, nom,
+                  clipNorm);
          }
          Matrix eTr = trY.sub(predict(trX));
          trainMSE[epoch] = eTr.mult(eTr).sum() / nTrain;
          Matrix eTe = teY.sub(predict(teX));
          testMSE[epoch] = eTe.mult(eTe).sum() / nTest;
          // early stopping check
-         if (testMSE[epoch] < bestTestMSE) {
+         if (testMSE[epoch] < bestTestMSE - minDelta) {
             bestTestMSE = testMSE[epoch];
             noImprove = 0;
             bestEpoch = epoch;

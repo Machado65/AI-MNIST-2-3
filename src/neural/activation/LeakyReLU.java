@@ -3,7 +3,7 @@ package neural.activation;
 import java.util.function.DoubleUnaryOperator;
 
 public class LeakyReLU implements IDifferentiableFunction {
-   private static final double ALPHA = 0.1;
+   private static final double ALPHA = 0.01;
 
    @Override
    public DoubleUnaryOperator fnc() {

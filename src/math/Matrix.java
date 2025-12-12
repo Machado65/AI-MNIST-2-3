@@ -6,6 +6,7 @@ import java.util.Objects;
 import java.util.Random;
 import java.util.function.DoubleBinaryOperator;
 import java.util.function.DoubleUnaryOperator;
+import java.util.stream.IntStream;
 
 /**
  * A matrix class for mathematical operations on 2D arrays of doubles.
@@ -336,11 +337,12 @@ public class Matrix {
                "Incompatible matrix sizes for element wise.");
       }
       Matrix result = new Matrix(this.rows, this.cols);
-      for (int i = 0; i < this.rows; ++i) {
-         for (int j = 0; j < this.cols; ++j)
-            result.data[i][j] = fnc.applyAsDouble(this.data[i][j],
-                  other.data[i][j]);
-      }
+      IntStream.range(0, this.rows).parallel()
+            .forEach(i -> {
+               for (int j = 0; j < this.cols; ++j)
+                  result.data[i][j] = fnc.applyAsDouble(this.data[i][j],
+                        other.data[i][j]);
+            });
       return result;
    }
 
@@ -501,13 +503,15 @@ public class Matrix {
                "Incompatible matrix sizes for multiplication.");
       }
       Matrix result = new Matrix(this.rows, other.cols);
-      for (int i = 0; i < this.rows; ++i) {
-         for (int j = 0; j < other.cols; ++j) {
-            for (int k = 0; k < this.cols; ++k) {
-               result.data[i][j] += this.data[i][k] * other.data[k][j];
-            }
-         }
-      }
+      IntStream.range(0, this.rows).parallel()
+            .forEach(i -> {
+               for (int j = 0; j < other.cols; ++j) {
+                  for (int k = 0; k < this.cols; ++k) {
+                     result.data[i][j] += this.data[i][k]
+                           * other.data[k][j];
+                  }
+               }
+            });
       return result;
    }
 
@@ -646,5 +650,4 @@ public class Matrix {
       }
       return sb.toString();
    }
-
 }

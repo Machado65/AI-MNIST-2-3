@@ -23,17 +23,17 @@ import utils.RandomProvider;
  * and ease of experimentation.
  */
 public class MLPConfig {
-   private static final String DATASET_PATH = "data/largeDataset.csv";
-   private static final String LABELS_PATH = "data/largeLabels.csv";
+   private static final String DATASET_PATH = "data/bigDataset.csv";
+   private static final String LABELS_PATH = "data/bigLabels.csv";
    private static final long[] SEEDS = { 42, 97, 123, 456, 789, 1337,
          2023, 9999, 314159, 271828, 123456, 314159, 424242, 8675309 };
    private static final long[] SEEDS1 = { 42, 1337, 2024, 9999 };
-   private static final long[] SEEDS2 = { 9999, 314159, 271828, 424242,
+   private static final long[] SEEDS2 = { 1337, 9999, 314159, 271828, 424242,
          2023 };
    private static final long[] SEEDS3 = { 2023 };
 
    public static void main(String[] args) {
-      for (long seed : SEEDS3) {
+      for (long seed : SEEDS2) {
          System.out.println(
                "=== Running configurations with seed: " + seed + " ===");
          runAllConfigs(seed);
@@ -51,8 +51,8 @@ public class MLPConfig {
     */
    public static void runAllConfigs(long seed) {
       // config0(seed);
-      config1(seed);
-      config2(seed);
+      // config1(seed);
+      // config2(seed);
       config3(seed);
       config4(seed);
       config5(seed);
@@ -88,10 +88,11 @@ public class MLPConfig {
       System.out.println("\n=== CONFIG 2 ===");
       StringBuilder augmentName = new StringBuilder("mlp_config2s");
       augmentName.append(seed);
-      DataSetBuilder ds = baseDataset(seed, false, false,
+      DataSetBuilder ds = baseDataset(seed, false, true,
             false, false, false,
-            false, true, augmentName);
-      runTraining(ds, new int[] { 400, 256, 1 }, 0.002, 16000, 1200, seed, augmentName);
+            false, false, augmentName);
+      runTraining(ds, new int[] { 400, 256, 1 }, 0.002, 16000,
+            1200, seed, augmentName);
    }
 
    private static void config3(long seed) {
@@ -281,7 +282,7 @@ public class MLPConfig {
       }
       try {
          configName.insert(0, "src/ml/models/");
-         configName.append("_largeV2");
+         configName.append("_Big");
          configName.append(".dat");
          trainer.getMLP().saveModel(configName.toString(),
                evalResult.getOptimalThreshold());
