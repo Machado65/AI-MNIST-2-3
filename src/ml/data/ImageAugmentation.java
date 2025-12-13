@@ -109,23 +109,20 @@ public class ImageAugmentation {
    }
 
    public static void shift(double[] input, double[] output,
-         Random rand) {
-      // Random shift: -2 to +2 pixels
-      int shiftX = rand.nextInt(5) - 2;
-      int shiftY = rand.nextInt(5) - 2;
+         int maxShift, Random rand) {
+      int shiftX = rand.nextInt(2 * maxShift + 1) - maxShift;
+      int shiftY = rand.nextInt(2 * maxShift + 1) - maxShift;
       for (int y = 0; y < IMAGE_SIZE; ++y) {
+         int srcY = y - shiftY;
+         if (srcY < 0 || srcY >= IMAGE_SIZE) {
+            continue;
+         }
          for (int x = 0; x < IMAGE_SIZE; ++x) {
             int srcX = x - shiftX;
-            int srcY = y - shiftY;
-            int dstIdx = y * IMAGE_SIZE + x;
-            // Check bounds
-            if (srcX >= 0 && srcX < IMAGE_SIZE && srcY >= 0
-                  && srcY < IMAGE_SIZE) {
-               int srcIdx = srcY * IMAGE_SIZE + srcX;
-               output[dstIdx] = input[srcIdx];
-            } else {
-               output[dstIdx] = 0.0; // Black padding
+            if (srcX < 0 || srcX >= IMAGE_SIZE) {
+               continue;
             }
+            output[y * IMAGE_SIZE + x] = input[srcY * IMAGE_SIZE + srcX];
          }
       }
    }

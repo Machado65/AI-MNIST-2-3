@@ -104,6 +104,10 @@ public class DataSetBuilder {
             input, output, stdDev, rand));
    }
 
+   public void addBrightnessAdjustment(int copies, Random rand) {
+      augment(copies, (input, output) -> ImageAugmentation.applyBrightness(input, output, rand));
+   }
+
    public void addElasticDeformation(double alpha, double sigma,
          int copies, Random rand) {
       augment(copies, (input, output) -> ImageAugmentation.elasticDeform(
@@ -115,9 +119,9 @@ public class DataSetBuilder {
             input, output, rand, maxDegrees));
    }
 
-   public void addShift(int copies, Random rand) {
-      augment(copies, (input, output) -> ImageAugmentation.shift(input,
-            output, rand));
+   public void addShift(int maxShift, int copies, Random rand) {
+      augment(copies, (input, output) -> ImageAugmentation.shift(
+            input, output, maxShift, rand));
    }
 
    public void addCombinedAugmentation1(int copies, Random rand,
@@ -134,22 +138,22 @@ public class DataSetBuilder {
    }
 
    public void addCombinedAugmentation2(int copies, Random rand,
-         double stdDev, double alpha, double sigma) {
+         double maxDegrees, int shiftPixels) {
       augment(copies, (input, output) -> {
          double[] temp1 = new double[input.length];
-         ImageAugmentation.elasticDeform(input, temp1, rand, alpha,
-               sigma);
-         ImageAugmentation.gaussianNoise(temp1, output, stdDev, rand);
+         ImageAugmentation.shift(input, temp1, shiftPixels, rand);
+         ImageAugmentation.applyRotation(temp1, output, rand,
+               maxDegrees);
       });
    }
 
    public void addCombinedAugmentation3(int copies, Random rand,
-         double stdDev, double maxDegrees) {
+         double alpha, double sigma) {
       augment(copies, (input, output) -> {
          double[] temp1 = new double[input.length];
-         ImageAugmentation.gaussianNoise(input, temp1, stdDev, rand);
-         ImageAugmentation.applyRotation(temp1, output, rand,
-               maxDegrees);
+         ImageAugmentation.elasticDeform(input, temp1, rand, alpha,
+               sigma);
+         ImageAugmentation.applyBrightness(temp1, output, rand);
       });
    }
 

@@ -13,7 +13,7 @@ public class P4 {
    public static void main(String[] args) {
       try (BufferedReader br = new BufferedReader(
             new InputStreamReader(System.in))) {
-         MLP mlp = new MLP("src/ml/models/mlp_model_normal.dat");
+         MLP mlp = new MLP("src/ml/models/model.dat");
          String line;
          List<Matrix> pred = new ArrayList<>();
          while ((line = br.readLine()) != null) {

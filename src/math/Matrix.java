@@ -163,6 +163,17 @@ public class Matrix {
    }
 
    /**
+    * Sets the value at the specified position in the matrix.
+    *
+    * @param row   the row index
+    * @param col   the column index
+    * @param value the value to set
+    */
+   public void set(int row, int col, double value) {
+      this.data[row][col] = value;
+   }
+
+   /**
     * Returns the number of rows in the matrix.
     *
     * @return the number of rows

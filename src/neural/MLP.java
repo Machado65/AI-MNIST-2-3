@@ -275,7 +275,7 @@ public class MLP {
    }
 
    private Matrix computeDeltaForLayer(int l, int l1, Matrix e) {
-      // delta = e .* z[l+1] .* (1-yp[l+1])
+      // delta = e .* yp[l+1] .* (1-yp[l+1])
       return e.mult(this.yp[l1].apply(this.act[l].derivative()));
    }
 
@@ -347,12 +347,6 @@ public class MLP {
       return mse;
    }
 
-   private double computeCosineAnnealingLR(double lrMax, double lrMin,
-         int epoch, int maxEpochs) {
-      return lrMin + 0.5 * (lrMax - lrMin) *
-            (1 + Math.cos(Math.PI * epoch / maxEpochs));
-   }
-
    private double computeOneCycleLR(double initLR, int epoch,
          int maxEpochs, double pctUp) {
       double lrLow = initLR / 10.0;
@@ -397,7 +391,7 @@ public class MLP {
       double minDelta = 1e-4;
       double pctUp = 0.3; // 30% warm-up, 70% cool-down
       double nom = 0.9;
-      double clipNorm = 5.0;
+      double clipNorm = 2.0;
       Array arr = new Array(nTrain);
       arr.initSequential(nTrain);
       for (int epoch = 0; epoch < epochs; ++epoch) {
