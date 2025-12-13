@@ -22,10 +22,10 @@ public class DefaultMLPConfig {
       ds.addGaussianNoise(0.02, 1, RandomProvider.of(SEED));
       ds.addElasticDeformation(6.0, 2.0, 1,
             RandomProvider.of(SEED));
-      // ds.addCombinedAugmentation2(1, RandomProvider.of(SEED),
-      // 5.0, 1);
-      ds.addCombinedAugmentation1(1, RandomProvider.of(SEED),
-            6.0, 2.0, 5.0);
+      ds.addCombinedAugmentation2(1, RandomProvider.of(SEED),
+            5.0, 1);
+      // ds.addCombinedAugmentation1(1, RandomProvider.of(SEED),
+      // 6.0, 2.0, 5.0);
       ds.split(0.8, RandomProvider.of(SEED));
       Matrix trX = ds.getTrX();
       Matrix trY = ds.getTrY();
