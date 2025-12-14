@@ -8,6 +8,15 @@ import math.Array;
 import math.Matrix;
 import utils.CSVReader;
 
+/**
+ * Builder class for loading, preprocessing, and augmenting datasets.
+ * Handles data normalization, label conversion, train/test splitting, and
+ * augmentation.
+ * Designed for image classification tasks with MNIST-style data.
+ *
+ * @author André Martins, António Matoso, Tomás Machado
+ * @version 1.0
+ */
 public class DataSetBuilder {
    private Matrix x;
    private Matrix y;
@@ -16,6 +25,12 @@ public class DataSetBuilder {
    private Matrix teX;
    private Matrix teY;
 
+   /**
+    * Constructs a DataSetBuilder by loading data from CSV files.
+    *
+    * @param datasetPath path to CSV file containing features (one sample per row)
+    * @param labelsPath  path to CSV file containing labels (one label per row)
+    */
    public DataSetBuilder(String datasetPath, String labelsPath) {
       this.x = CSVReader.readCSV(datasetPath);
       this.y = CSVReader.readCSV(labelsPath);
@@ -65,6 +80,14 @@ public class DataSetBuilder {
       this.y = this.y.apply(fnc);
    }
 
+   /**
+    * Augments the current dataset by applying transformations to existing samples.
+    * Creates multiple augmented copies of each original sample.
+    * WARNING: Augments from currently stored data, which may already be augmented.
+    *
+    * @param copies    number of augmented copies to create per sample
+    * @param transform transformation function applied to each copy
+    */
    private void augment(int copies,
          BiConsumer<double[], double[]> transform) {
       int origRows = x.rows();
@@ -99,44 +122,93 @@ public class DataSetBuilder {
       y = new Matrix(augmentedY);
    }
 
+   /**
+    * Adds Gaussian noise augmentation to the dataset.
+    *
+    * @param stdDev standard deviation of noise (e.g., 0.02)
+    * @param copies number of noisy copies per original sample
+    * @param rand   random number generator
+    */
    public void addGaussianNoise(double stdDev, int copies, Random rand) {
       augment(copies, (input, output) -> ImageAugmentation.gaussianNoise(
             input, output, stdDev, rand));
    }
 
+   /**
+    * Adds brightness adjustment augmentation to the dataset.
+    *
+    * @param copies number of brightness-adjusted copies per sample
+    * @param rand   random number generator
+    */
    public void addBrightnessAdjustment(int copies, Random rand) {
       augment(copies, (input, output) -> ImageAugmentation.applyBrightness(input, output, rand));
    }
 
+   /**
+    * Adds elastic deformation augmentation to the dataset.
+    *
+    * @param alpha  deformation intensity (typical: 6.0)
+    * @param sigma  smoothing parameter (typical: 2.0)
+    * @param copies number of deformed copies per sample
+    * @param rand   random number generator
+    */
    public void addElasticDeformation(double alpha, double sigma,
          int copies, Random rand) {
       augment(copies, (input, output) -> ImageAugmentation.elasticDeform(
             input, output, rand, alpha, sigma));
    }
 
+   /**
+    * Adds rotation augmentation to the dataset.
+    *
+    * @param maxDegrees maximum rotation angle in degrees (e.g., 5.0)
+    * @param copies     number of rotated copies per sample
+    * @param rand       random number generator
+    */
    public void addRotation(double maxDegrees, int copies, Random rand) {
       augment(copies, (input, output) -> ImageAugmentation.applyRotation(
             input, output, rand, maxDegrees));
    }
 
+   /**
+    * Adds pixel shift augmentation to the dataset.
+    *
+    * @param maxShift maximum shift in pixels (e.g., 2)
+    * @param copies   number of shifted copies per sample
+    * @param rand     random number generator
+    */
    public void addShift(int maxShift, int copies, Random rand) {
       augment(copies, (input, output) -> ImageAugmentation.shift(
             input, output, maxShift, rand));
    }
 
+   /**
+    * Adds combined augmentation: elastic deformation + rotation + brightness.
+    *
+    * @param copies     number of augmented copies per sample
+    * @param rand       random number generator
+    * @param alpha      deformation intensity
+    * @param sigma      smoothing parameter
+    * @param maxDegrees maximum rotation angle
+    */
    public void addCombinedAugmentation1(int copies, Random rand,
-         double alpha, double sigma, double maxDegrees) {
+         double stdDev, double minScale, double maxScale) {
       augment(copies, (input, output) -> {
          double[] temp1 = new double[input.length];
-         double[] temp2 = new double[input.length];
-         ImageAugmentation.elasticDeform(input, temp1, rand, alpha,
-               sigma);
-         ImageAugmentation.applyRotation(temp1, temp2, rand,
-               maxDegrees);
-         ImageAugmentation.applyBrightness(temp2, output, rand);
+         ImageAugmentation.gaussianNoise(input, temp1, stdDev, rand);
+         ImageAugmentation.applyScaling(temp1, output, rand, minScale,
+               maxScale);
       });
    }
 
+   /**
+    * Adds combined augmentation: shift + rotation.
+    *
+    * @param copies      number of augmented copies per sample
+    * @param rand        random number generator
+    * @param maxDegrees  maximum rotation angle
+    * @param shiftPixels maximum shift in pixels
+    */
    public void addCombinedAugmentation2(int copies, Random rand,
          double maxDegrees, int shiftPixels) {
       augment(copies, (input, output) -> {
@@ -147,6 +219,14 @@ public class DataSetBuilder {
       });
    }
 
+   /**
+    * Adds combined augmentation: elastic deformation + brightness.
+    *
+    * @param copies number of augmented copies per sample
+    * @param rand   random number generator
+    * @param alpha  deformation intensity
+    * @param sigma  smoothing parameter
+    */
    public void addCombinedAugmentation3(int copies, Random rand,
          double alpha, double sigma) {
       augment(copies, (input, output) -> {
@@ -157,6 +237,13 @@ public class DataSetBuilder {
       });
    }
 
+   /**
+    * Splits the dataset into training and testing sets.
+    * Randomly shuffles the data before splitting.
+    *
+    * @param trainRatio proportion of data for training (e.g., 0.8 for 80%)
+    * @param rand       random number generator for shuffling
+    */
    public void split(double trainRatio, Random rand) {
       int n = this.x.rows();
       int m = this.x.cols();

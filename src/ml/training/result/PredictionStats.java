@@ -2,12 +2,24 @@ package ml.training.result;
 
 import math.Matrix;
 
+/**
+ * Statistics about model predictions: minimum, maximum, and average values.
+ * Useful for understanding the distribution of predicted probabilities.
+ *
+ * @author André Martins, António Matoso, Tomás Machado
+ * @version 1.0
+ */
 public class PredictionStats {
    private double min;
    private double max;
    private double avg;
    private int n;
 
+   /**
+    * Computes statistics from a matrix of predictions.
+    *
+    * @param pred matrix containing predicted probabilities (one per row)
+    */
    public PredictionStats(Matrix pred) {
       this.n = pred.rows();
       this.min = Double.MAX_VALUE;
@@ -22,6 +34,11 @@ public class PredictionStats {
       this.avg = sum / n;
    }
 
+   /**
+    * Returns a formatted string with prediction statistics.
+    *
+    * @return string containing count, min, max, and average predictions
+    */
    @Override
    public String toString() {
       StringBuilder sb = new StringBuilder();

@@ -14,18 +14,30 @@ import utils.RandomProvider;
 public class DefaultMLPConfig {
    private static final String DATASET_PATH = "data/largeDataset.csv";
    private static final String LABELS_PATH = "data/largeLabels.csv";
-   private static final long SEED = 42;
+   private static final long SEED = 2023;
 
+   /**
+    * Main method that trains the MLP with default configuration.
+    * Loads data, applies augmentation, trains the network, and evaluates
+    * performance.
+    * Saves the trained model to disk.
+    *
+    * @param args command line arguments (not used)
+    */
    public static void main(String[] args) {
       DataSetBuilder ds = new DataSetBuilder(DATASET_PATH, LABELS_PATH);
       ds.convertLabels(label -> (label == 2.0) ? 0.0 : 1.0);
-      ds.addGaussianNoise(0.02, 1, RandomProvider.of(SEED));
-      ds.addElasticDeformation(6.0, 2.0, 1,
-            RandomProvider.of(SEED));
+      // ds.addGaussianNoise(0.02, 1, RandomProvider.of(SEED));
+      // ds.addElasticDeformation(6.0, 2.0, 1,
+      // RandomProvider.of(SEED));
+      // ds.addRotation(5.0, 1,
+      // RandomProvider.of(SEED));
+      ds.addCombinedAugmentation1(1, RandomProvider.of(SEED),
+            0.02, 0.9, 1.1);
       ds.addCombinedAugmentation2(1, RandomProvider.of(SEED),
             5.0, 1);
-      // ds.addCombinedAugmentation1(1, RandomProvider.of(SEED),
-      // 6.0, 2.0, 5.0);
+      ds.addCombinedAugmentation3(1, RandomProvider.of(SEED),
+            6.0, 2.0);
       ds.split(0.8, RandomProvider.of(SEED));
       Matrix trX = ds.getTrX();
       Matrix trY = ds.getTrY();
@@ -43,7 +55,7 @@ public class DefaultMLPConfig {
       EvaluationResult evalResult = trainer.evaluate();
       System.out.println(evalResult);
       try {
-         trainer.getMLP().saveModel("src/ml/models/model.dat",
+         trainer.getMLP().saveModel("src/ml/models/model_large_C1_C2_C3.dat",
                evalResult.getOptimalThreshold());
       } catch (Exception e) {
          e.printStackTrace();

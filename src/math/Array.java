@@ -2,13 +2,32 @@ package math;
 
 import java.util.Random;
 
+/**
+ * Array utility class for managing integer arrays.
+ * Provides functionality for initialization, shuffling, and element access.
+ * Used primarily for managing indices in batch training.
+ *
+ * @author André Martins, António Matoso, Tomás Machado
+ * @version 1.0
+ */
 public class Array {
    private int[] data;
 
+   /**
+    * Constructs an array of specified size.
+    *
+    * @param n the size of the array
+    */
    public Array(int n) {
       this.data = new int[n];
    }
 
+   /**
+    * Initializes the array with sequential values from 0 to n-1.
+    * Example: for n=5, array becomes [0, 1, 2, 3, 4]
+    *
+    * @param n the number of sequential values to initialize
+    */
    public void initSequential(int n) {
       for (int i = 0; i < n; ++i) {
          this.data[i] = i;

@@ -46,6 +46,13 @@ public class MLP {
    private OptimalThreshold optThreshold;
    private static final String WHITESPACE = "\\s+";
 
+   /**
+    * Reads the optimal threshold from a saved model file.
+    *
+    * @param br BufferedReader for the model file
+    * @return OptimalThreshold read from file
+    * @throws IOException if file format is invalid
+    */
    private OptimalThreshold readOptimalThreshold(BufferedReader br)
          throws IOException {
       String line = br.readLine();
@@ -57,6 +64,13 @@ public class MLP {
             line.split(WHITESPACE)[1]));
    }
 
+   /**
+    * Reads the network topology (layer sizes) from a saved model file.
+    *
+    * @param br BufferedReader for the model file
+    * @return array of layer sizes
+    * @throws IOException if file format is invalid
+    */
    private int[] readTopology(BufferedReader br) throws IOException {
       String line = br.readLine();
       if (!line.startsWith("TOPOLOGY")) {
@@ -73,6 +87,13 @@ public class MLP {
       return layerSizes;
    }
 
+   /**
+    * Reads activation function types from a saved model file.
+    * Populates the act array with appropriate activation function instances.
+    *
+    * @param br BufferedReader for the model file
+    * @throws IOException if file format is invalid or unknown activation
+    */
    private void readActivations(BufferedReader br) throws IOException {
       String line = br.readLine();
       if (!line.startsWith("ACTIVATIONS")) {
@@ -103,6 +124,14 @@ public class MLP {
       }
    }
 
+   /**
+    * Reads a single matrix from a saved model file.
+    * First line contains dimensions, following lines contain matrix values.
+    *
+    * @param br BufferedReader for the model file
+    * @return Matrix read from file
+    * @throws IOException if file format is invalid
+    */
    private Matrix readMatrix(BufferedReader br) throws IOException {
       String[] dims = br.readLine().split(WHITESPACE);
       int rows = Integer.parseInt(dims[0]);
@@ -117,6 +146,15 @@ public class MLP {
       return new Matrix(data);
    }
 
+   /**
+    * Reads multiple matrices (weights or biases) from a saved model file.
+    *
+    * @param br             BufferedReader for the model file
+    * @param expectedHeader expected section header ("WEIGHTS" or "BIASES")
+    * @param matrices       array to store the read matrices
+    * @param n              number of matrices to read
+    * @throws IOException if file format is invalid
+    */
    private void readMatrices(BufferedReader br, String expectedHeader,
          Matrix[] matrices, int n) throws IOException {
       String line = br.readLine();
@@ -129,6 +167,14 @@ public class MLP {
       }
    }
 
+   /**
+    * Constructs an MLP by loading a saved model from file.
+    * The file must contain optimal threshold, topology, activations, weights, and
+    * biases.
+    *
+    * @param path path to the saved model file
+    * @throws IOException if file cannot be read or format is invalid
+    */
    public MLP(String path) throws IOException {
       try (BufferedReader br = new BufferedReader(new FileReader(path))) {
          this.optThreshold = readOptimalThreshold(br);
@@ -274,21 +320,56 @@ public class MLP {
       return this.yp[this.nLayers - 1];
    }
 
+   /**
+    * Computes the error gradient (delta) for a specific layer.
+    * Delta represents how much each neuron contributed to the error.
+    *
+    * Formula: delta = e ⊙ f'(yp[l+1])
+    * where ⊙ is element-wise multiplication and f' is activation derivative
+    *
+    * @param l  layer index
+    * @param l1 layer index + 1
+    * @param e  error matrix propagated from next layer
+    * @return delta (gradient) for this layer
+    */
    private Matrix computeDeltaForLayer(int l, int l1, Matrix e) {
       // delta = e .* yp[l+1] .* (1-yp[l+1])
       return e.mult(this.yp[l1].apply(this.act[l].derivative()));
    }
 
+   /**
+    * Clips gradient norm to prevent exploding gradients.
+    * If the gradient norm exceeds clipNorm, scales it down proportionally.
+    *
+    * @param g        gradient matrix to clip
+    * @param clipNorm maximum allowed gradient norm (e.g., 1.0)
+    * @return clipped gradient
+    */
    private Matrix clipGradient(Matrix g, double clipNorm) {
       double norm = Math.sqrt(g.mult(g).sum());
-      if (norm > clipNorm && norm > 0.0) {
+      if (norm > clipNorm) {
          return g.mult(clipNorm / norm);
       }
       return g;
    }
 
+   /**
+    * Updates weights and biases for a single layer using SGD with Nesterov
+    * momentum.
+    * Applies gradient clipping to prevent instability.
+    *
+    * Update rule: Δw = η·δ + α·Δw_prev
+    * where η is learning rate and α is momentum coefficient
+    *
+    * @param l        layer index
+    * @param delta    error gradient for this layer
+    * @param lr       learning rate (e.g., 0.01)
+    * @param mom      momentum coefficient (e.g., 0.95)
+    * @param clipNorm maximum gradient norm for clipping
+    */
    private void updateLayerSGD(int l, Matrix delta, double lr,
          double mom, double clipNorm) {
+      // Δw[k]=ηδ[k]+αΔw[k-1], α∈[0,1]
       Matrix deltaW = this.yp[l].transpose().dot(delta).mult(lr)
             .add(this.dWPrev[l].mult(mom));
       Matrix deltaB = delta.sumColumns().mult(lr)
@@ -301,6 +382,17 @@ public class MLP {
       this.dBPrev[l] = deltaB;
    }
 
+   /**
+    * Performs backpropagation to update all network weights and biases.
+    * Computes error gradients layer-by-layer starting from output layer.
+    * Uses SGD with Nesterov momentum and gradient clipping.
+    *
+    * @param y        target labels (ground truth)
+    * @param lr       learning rate
+    * @param mom      momentum coefficient
+    * @param clipNorm gradient clipping norm
+    * @return output error (difference between prediction and target)
+    */
    public Matrix backPropagationSGD(Matrix y, double lr, double mom,
          double clipNorm) {
       int n = this.nLayers - 2;
@@ -347,6 +439,17 @@ public class MLP {
       return mse;
    }
 
+   /**
+    * Computes learning rate using One Cycle LR schedule.
+    * Warm-up phase: linearly increases from lrLow to lrHigh
+    * Cool-down phase: decreases from lrHigh to lrFinal
+    *
+    * @param initLR    initial learning rate (base LR)
+    * @param epoch     current epoch number
+    * @param maxEpochs total number of epochs
+    * @param pctUp     percentage of epochs for warm-up (e.g., 0.3 = 30%)
+    * @return learning rate for current epoch
+    */
    private double computeOneCycleLR(double initLR, int epoch,
          int maxEpochs, double pctUp) {
       double lrLow = initLR / 10.0;
@@ -364,12 +467,16 @@ public class MLP {
    }
 
    /**
-    * @param x
-    * @param y
-    * @param learningRate
-    * @param epochs
-    * @param patience
-    * @return
+    * Main training method with advanced optimization techniques.
+    * Implements:
+    * -One Cycle policy
+    * - Momentum (0.9)
+    * - Mini-batch training with dynamic batch size
+    * - Gradient clipping (norm = 2.0)
+    * - Early stopping with best weights restoration
+    *
+    * @param config training configuration containing datasets and hyperparameters
+    * @return TrainResult with MSE history and best epoch information
     */
    public TrainResult train(TrainConfig config) {
       Matrix trX = config.getTr().getX();
@@ -430,6 +537,12 @@ public class MLP {
             Arrays.copyOf(testMSE, n), bestEpoch, bestTestMSE);
    }
 
+   /**
+    * Writes the optimal threshold to a model file.
+    *
+    * @param bw BufferedWriter for the model file
+    * @param o  optimal threshold to write
+    */
    private void writeOptimalThreshold(BufferedWriter bw,
          OptimalThreshold o) {
       try {
@@ -441,10 +554,22 @@ public class MLP {
       }
    }
 
+   /**
+    * Gets the number of neurons in a specific layer.
+    *
+    * @param layerIdx layer index (0 = input layer)
+    * @return number of neurons in the layer
+    */
    private int getLayerSize(int layerIdx) {
       return (layerIdx == 0) ? w[0].rows() : w[layerIdx - 1].cols();
    }
 
+   /**
+    * Writes the network topology (layer sizes) to a model file.
+    *
+    * @param bw BufferedWriter for the model file
+    * @throws IOException if writing fails
+    */
    private void writeTopology(BufferedWriter bw) throws IOException {
       bw.append("TOPOLOGY");
       for (int i = 0; i < nLayers; ++i) {
@@ -453,6 +578,12 @@ public class MLP {
       bw.newLine();
    }
 
+   /**
+    * Writes activation function names to a model file.
+    *
+    * @param bw BufferedWriter for the model file
+    * @throws IOException if writing fails
+    */
    private void writeActivations(BufferedWriter bw) throws IOException {
       bw.append("ACTIVATIONS");
       for (IDifferentiableFunction f : act) {
@@ -461,6 +592,14 @@ public class MLP {
       bw.newLine();
    }
 
+   /**
+    * Writes multiple matrices (weights or biases) to a model file.
+    *
+    * @param bw       BufferedWriter for the model file
+    * @param label    section label ("WEIGHTS" or "BIASES")
+    * @param matrices array of matrices to write
+    * @throws IOException if writing fails
+    */
    private void writeMatrices(BufferedWriter bw, String label,
          Matrix[] matrices) throws IOException {
       bw.append(label);
@@ -470,6 +609,15 @@ public class MLP {
       }
    }
 
+   /**
+    * Writes a single matrix to a model file.
+    * Format: first line contains dimensions (rows cols), following lines contain
+    * values.
+    *
+    * @param bw     BufferedWriter for the model file
+    * @param matrix matrix to write
+    * @throws IOException if writing fails
+    */
    private void writeMatrix(BufferedWriter bw, Matrix matrix)
          throws IOException {
       bw.append(matrix.rows() + " " + matrix.cols());
@@ -485,6 +633,16 @@ public class MLP {
       }
    }
 
+   /**
+    * Saves the trained MLP model to a file.
+    * File format includes: optimal threshold, topology, activations, weights, and
+    * biases.
+    * Can be loaded later using the MLP(String path) constructor.
+    *
+    * @param path file path to save the model
+    * @param o    optimal classification threshold to save
+    * @throws IOException if file cannot be written
+    */
    public void saveModel(String path, OptimalThreshold o)
          throws IOException {
       try (BufferedWriter bw = new BufferedWriter(new FileWriter(path))) {

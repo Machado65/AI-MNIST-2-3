@@ -59,6 +59,12 @@ public class Matrix {
       }
    }
 
+   /**
+    * Constructs a matrix from a list of double arrays.
+    * Each array in the list becomes a row in the matrix.
+    *
+    * @param rows list of double arrays representing matrix rows
+    */
    public Matrix(List<double[]> rows) {
       if (rows == null || rows.isEmpty()) {
          throw new IllegalArgumentException(
@@ -371,11 +377,12 @@ public class Matrix {
          throw new IllegalArgumentException(
                "Incompatible matrix sizes for element wise.");
       }
-      for (int i = 0; i < this.rows; ++i) {
-         for (int j = 0; j < this.cols; ++j)
-            this.data[i][j] = fnc.applyAsDouble(this.data[i][j],
-                  other.data[i][j]);
-      }
+      IntStream.range(0, this.rows).parallel()
+            .forEach(i -> {
+               for (int j = 0; j < this.cols; ++j)
+                  this.data[i][j] = fnc.applyAsDouble(this.data[i][j],
+                        other.data[i][j]);
+            });
    }
 
    /**

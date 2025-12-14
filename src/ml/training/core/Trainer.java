@@ -12,28 +12,72 @@ import ml.training.threshold.OptimalThreshold;
 import neural.MLP;
 import neural.activation.IDifferentiableFunction;
 
+/**
+ * High-level trainer class for Multi-Layer Perceptron (MLP).
+ * Manages the training lifecycle, prediction, and evaluation of the neural
+ * network.
+ * Provides automatic threshold optimization for binary classification.
+ *
+ * @author André Martins, António Matoso, Tomás Machado
+ * @version 1.0
+ */
 public class Trainer {
    TrainConfig config;
    private MLP mlp;
 
+   /**
+    * Constructs a trainer with specified network architecture and configuration.
+    *
+    * @param topology array defining layer sizes (e.g., [400, 64, 1])
+    * @param act      array of activation functions for each layer
+    * @param config   training configuration (datasets, hyperparameters)
+    * @param rand     random number generator for reproducibility
+    */
    public Trainer(int[] topology, IDifferentiableFunction[] act,
          TrainConfig config, Random rand) {
       this.config = new TrainConfig(config);
       this.mlp = new MLP(topology, act, rand);
    }
 
+   /**
+    * Returns the underlying MLP instance.
+    *
+    * @return the MLP network
+    */
    public MLP getMLP() {
       return this.mlp;
    }
 
+   /**
+    * Trains the MLP using the configuration provided at construction.
+    * Uses SGD with momentum, dropout, and early stopping.
+    *
+    * @return training result containing MSE history and best epoch
+    */
    public TrainResult train() {
       return mlp.train(config);
    }
 
+   /**
+    * Makes predictions on the given input data.
+    * Dropout is disabled during prediction.
+    *
+    * @param x input feature matrix (rows = samples, cols = features)
+    * @return matrix of predictions (one probability per row)
+    */
    public Matrix predict(Matrix x) {
       return mlp.predict(x);
    }
 
+   /**
+    * Counts correct predictions using the specified threshold.
+    *
+    * @param pred      predicted probabilities
+    * @param actual    actual labels (0 or 1)
+    * @param threshold classification threshold
+    * @param n         number of samples
+    * @return number of correct predictions
+    */
    private int countCorrectPredictions(Matrix pred, Matrix actual,
          double threshold, int n) {
       int ans = 0;
@@ -47,6 +91,15 @@ public class Trainer {
       return ans;
    }
 
+   /**
+    * Finds the optimal classification threshold by grid search.
+    * Tests thresholds from 0.1 to 0.9 in steps of 0.05.
+    *
+    * @param pred   predicted probabilities
+    * @param actual actual labels
+    * @param n      number of samples
+    * @return optimal threshold that maximizes accuracy
+    */
    private OptimalThreshold findOptimalThreshold(Matrix pred,
          Matrix actual, int n) {
       double bestThreshold = 0.5;
@@ -62,6 +115,15 @@ public class Trainer {
       return new OptimalThreshold(bestThreshold);
    }
 
+   /**
+    * Computes evaluation metrics (TP, FP, TN, FN) using the threshold.
+    *
+    * @param pred      predicted probabilities
+    * @param actual    actual labels
+    * @param threshold classification threshold
+    * @param n         number of samples
+    * @return evaluation metrics with accuracy, precision, recall, F1
+    */
    private EvaluationMetrics computeMetrics(Matrix pred, Matrix actual,
          double threshold, int n) {
       EvaluationMetrics metrics = new EvaluationMetrics();
@@ -72,6 +134,12 @@ public class Trainer {
       return metrics;
    }
 
+   /**
+    * Evaluates the model on the test dataset.
+    * Automatically finds the optimal threshold and computes all metrics.
+    *
+    * @return complete evaluation result with statistics, threshold, and metrics
+    */
    public EvaluationResult evaluate() {
       Matrix teX = config.getTe().getX();
       Matrix teY = config.getTe().getY();
