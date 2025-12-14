@@ -12,8 +12,8 @@ import neural.activation.Sigmoid;
 import utils.RandomProvider;
 
 public class DefaultMLPConfig {
-   private static final String DATASET_PATH = "data/largeDataset.csv";
-   private static final String LABELS_PATH = "data/largeLabels.csv";
+   private static final String DATASET_PATH = "data/mediumDataset.csv";
+   private static final String LABELS_PATH = "data/mediumLabels.csv";
    private static final long SEED = 2023;
 
    /**
@@ -27,13 +27,15 @@ public class DefaultMLPConfig {
    public static void main(String[] args) {
       DataSetBuilder ds = new DataSetBuilder(DATASET_PATH, LABELS_PATH);
       ds.convertLabels(label -> (label == 2.0) ? 0.0 : 1.0);
-      // ds.addGaussianNoise(0.02, 1, RandomProvider.of(SEED));
-      // ds.addElasticDeformation(6.0, 2.0, 1,
+      // ds.addGaussianNoise(0.02, 1,
+      // RandomProvider.of(SEED));
+      // ElasticDeformation(6.0, 2.0, 1,
       // RandomProvider.of(SEED));
       // ds.addRotation(5.0, 1,
       // RandomProvider.of(SEED));
       ds.addCombinedAugmentation1(1, RandomProvider.of(SEED),
-            0.02, 0.9, 1.1);
+            0.02, 0.9, 1.1, 0.9,
+            1.1);
       ds.addCombinedAugmentation2(1, RandomProvider.of(SEED),
             5.0, 1);
       ds.addCombinedAugmentation3(1, RandomProvider.of(SEED),
@@ -55,7 +57,7 @@ public class DefaultMLPConfig {
       EvaluationResult evalResult = trainer.evaluate();
       System.out.println(evalResult);
       try {
-         trainer.getMLP().saveModel("src/ml/models/model_large_C1_C2_C3.dat",
+         trainer.getMLP().saveModel("src/ml/models/mlp_config1s2023_C1_C2_C3_medium.dat",
                evalResult.getOptimalThreshold());
       } catch (Exception e) {
          e.printStackTrace();

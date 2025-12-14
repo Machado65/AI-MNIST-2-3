@@ -354,8 +354,7 @@ public class MLP {
    }
 
    /**
-    * Updates weights and biases for a single layer using SGD with Nesterov
-    * momentum.
+    * Updates weights and biases for a single layer using SGD
     * Applies gradient clipping to prevent instability.
     *
     * Update rule: Δw = η·δ + α·Δw_prev

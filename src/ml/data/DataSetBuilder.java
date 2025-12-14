@@ -192,12 +192,16 @@ public class DataSetBuilder {
     * @param maxDegrees maximum rotation angle
     */
    public void addCombinedAugmentation1(int copies, Random rand,
-         double stdDev, double minScale, double maxScale) {
+         double stdDev, double minScale, double maxScale, double minC,
+         double maxC) {
       augment(copies, (input, output) -> {
          double[] temp1 = new double[input.length];
+         double[] temp2 = new double[input.length];
          ImageAugmentation.gaussianNoise(input, temp1, stdDev, rand);
-         ImageAugmentation.applyScaling(temp1, output, rand, minScale,
+         ImageAugmentation.applyScaling(temp1, temp2, rand, minScale,
                maxScale);
+         ImageAugmentation.applyContrast(temp2, output, rand, minC,
+               maxC);
       });
    }
 

@@ -23,8 +23,8 @@ import utils.RandomProvider;
  * and ease of experimentation.
  */
 public class MLPConfig {
-   private static final String DATASET_PATH = "data/mediumDataset.csv";
-   private static final String LABELS_PATH = "data/mediumLabels.csv";
+   private static final String DATASET_PATH = "data/largeDataset.csv";
+   private static final String LABELS_PATH = "data/largeLabels.csv";
    private static final long[] SEEDS = { 42, 97, 123, 456, 789, 1337,
          2023, 9999, 314159, 271828, 123456, 314159, 424242, 8675309 };
    private static final long[] SEEDS1 = { 314159, 8675309, 271828, 424242, 2023 };
@@ -76,8 +76,8 @@ public class MLPConfig {
       System.out.println("\n=== CONFIG 1 ===");
       StringBuilder augmentName = new StringBuilder("mlp_config1s");
       augmentName.append(seed);
-      DataSetBuilder ds = baseDataset(seed, true, false,
-            false, false, false,
+      DataSetBuilder ds = baseDataset(seed, false, false,
+            false, false, true,
             true, true, augmentName);
       runTraining(ds, new int[] { 400, 256, 1 },
             0.002, 16000, 800, seed, augmentName);
@@ -214,7 +214,8 @@ public class MLPConfig {
       }
       if (combined1) {
          ds.addCombinedAugmentation1(1, RandomProvider.of(seed),
-               0.02, 0.9, 1.1);
+               0.02, 0.9, 1.1, 0.9,
+               1.1);
          augmentName.append("_C1");
       }
       if (combined2) {
@@ -281,7 +282,7 @@ public class MLPConfig {
       }
       try {
          configName.insert(0, "src/ml/models/");
-         configName.append("_medium");
+         configName.append("_large");
          configName.append(".dat");
          trainer.getMLP().saveModel(configName.toString(),
                evalResult.getOptimalThreshold());
