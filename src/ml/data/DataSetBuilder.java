@@ -208,10 +208,9 @@ public class DataSetBuilder {
    /**
     * Adds combined augmentation: shift + rotation.
     *
-    * @param copies      number of augmented copies per sample
-    * @param rand        random number generator
-    * @param maxDegrees  maximum rotation angle
-    * @param shiftPixels maximum shift in pixels
+    * @param copies     number of augmented copies per sample
+    * @param rand       random number generator
+    * @param maxDegrees maximum rotation angle
     */
    public void addCombinedAugmentation2(int copies, Random rand,
          double maxDegrees, int shiftPixels) {

@@ -6,9 +6,11 @@ import ml.training.config.DataSet;
 import ml.training.config.TrainConfig;
 import ml.training.core.Trainer;
 import ml.training.result.EvaluationResult;
+import ml.training.result.TrainResult;
 import neural.activation.IDifferentiableFunction;
 import neural.activation.LeakyReLU;
 import neural.activation.Sigmoid;
+import utils.MSE;
 import utils.RandomProvider;
 
 public class DefaultMLPConfig {
@@ -37,7 +39,7 @@ public class DefaultMLPConfig {
             0.02, 0.9, 1.1, 0.9,
             1.1);
       ds.addCombinedAugmentation2(1, RandomProvider.of(SEED),
-            5.0, 1);
+            6.0, 1);
       ds.addCombinedAugmentation3(1, RandomProvider.of(SEED),
             6.0, 2.0);
       ds.split(0.8, RandomProvider.of(SEED));
@@ -45,20 +47,31 @@ public class DefaultMLPConfig {
       Matrix trY = ds.getTrY();
       Matrix teX = ds.getTeX();
       Matrix teY = ds.getTeY();
-      Trainer trainer = new Trainer(new int[] { 400, 256, 1 },
+      Trainer trainer = new Trainer(
+            new int[] { 400, 256, 1 },
             new IDifferentiableFunction[] {
                   new LeakyReLU(),
                   new Sigmoid() },
-            new TrainConfig(new DataSet(trX, trY), new DataSet(teX, teY),
-                  0.002, 16000, 800,
+            new TrainConfig(
+                  new DataSet(trX, trY),
+                  new DataSet(teX, teY),
+                  0.001,
+                  16000,
+                  800,
                   RandomProvider.of(SEED)),
             RandomProvider.of(SEED));
-      System.out.println(trainer.train());
+      TrainResult trainResult = trainer.train();
+      System.out.println(trainResult);
       EvaluationResult evalResult = trainer.evaluate();
       System.out.println(evalResult);
       try {
-         trainer.getMLP().saveModel("src/ml/models/mlp_config1s2023_C1_C2_C3_medium.dat",
+         trainer.getMLP().saveModel(
+               "src/ml/models/model.dat",
                evalResult.getOptimalThreshold());
+         MSE.saveMSE(trainResult.getTrainMSE(),
+               "mse_results/train.csv");
+         MSE.saveMSE(trainResult.getTestMSE(),
+               "mse_results/test.csv");
       } catch (Exception e) {
          e.printStackTrace();
       }

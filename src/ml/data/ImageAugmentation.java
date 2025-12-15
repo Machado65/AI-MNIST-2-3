@@ -296,26 +296,5 @@ public class ImageAugmentation {
       }
    }
 
-   public static void applyThickness(double[] input, double[] output,
-         int radius) {
-      for (int i = 0; i < IMAGE_PIXELS; ++i) {
-         output[i] = input[i];
-      }
-      for (int y = 0; y < IMAGE_SIZE; ++y) {
-         for (int x = 0; x < IMAGE_SIZE; ++x) {
-            double acc = (radius > 0) ? 0.0 : 1.0;
-            for (int dy = -Math.abs(radius); dy <= Math.abs(radius); ++dy) {
-               for (int dx = -Math.abs(radius); dx <= Math.abs(radius); ++dx) {
-                  int xx = x + dx;
-                  int yy = y + dy;
-                  if (xx >= 0 && xx < IMAGE_SIZE && yy >= 0 && yy < IMAGE_SIZE) {
-                     double v = input[yy * IMAGE_SIZE + xx];
-                     acc = (radius > 0) ? Math.max(acc, v) : Math.min(acc, v);
-                  }
-               }
-            }
-            output[y * IMAGE_SIZE + x] = acc;
-         }
-      }
-   }
+
 }
