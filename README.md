@@ -154,12 +154,6 @@ The implementation includes several optimization techniques:
 - Early stopping to prevent overfitting
 - Threshold optimization for binary classification accuracy
 
-## References
-
-- Best Practices for Convolutional Neural Networks Applied to Visual Document Analysis (Simard et al., 2003)
-- MNIST Database of Handwritten Digits
-- Based on foundational work by hdaniel@ualg.pt
-
 ## License
 
 This project is an academic implementation for educational purposes.
@@ -167,6 +161,6 @@ This project is an academic implementation for educational purposes.
 ## Notes
 
 - The network specifically focuses on binary classification between digits 2 and 3
-- Default model path: `src/ml/models/model_rot_6.0_S2023_C1_C2_C3_medium.dat`
+- Default model path: `src/ml/models/example.dat`
 - Input size: 400 features (20×20 pixel images)
 - Output: Binary classification (2 or 3)
