@@ -68,6 +68,26 @@ AI-MNIST-2-3/
 
 ## Usage
 
+### Clone the Repository
+
+To clone this repository, run:
+
+```bash
+git clone https://github.com/Machado65/AI-MNIST-2-3.git
+cd AI-MNIST-2-3
+```
+### Training Models
+
+**Default Configuration:**
+```bash
+./runDefault.sh
+```
+
+**Custom Configuration:**
+```bash
+./runConfig.sh
+```
+
 ### Making Predictions
 
 To classify digit images using a trained model:
@@ -82,18 +102,6 @@ This script:
 3. Outputs predicted labels (2 or 3)
 
 The input format should be CSV with 400 pixel values per line (20×20 images).
-
-### Training Models
-
-**Default Configuration:**
-```bash
-./runDefault.sh
-```
-
-**Custom Configuration:**
-```bash
-./runConfig.sh
-```
 
 ## Architecture
 
