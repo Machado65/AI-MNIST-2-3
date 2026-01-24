@@ -154,18 +154,11 @@ The implementation includes several optimization techniques:
 - Early stopping to prevent overfitting
 - Threshold optimization for binary classification accuracy
 
-## Authors
-
-- André Martins
-- António Matoso
-- Tomás Machado
-
-Based on foundational work by hdaniel@ualg.pt
-
 ## References
 
 - Best Practices for Convolutional Neural Networks Applied to Visual Document Analysis (Simard et al., 2003)
 - MNIST Database of Handwritten Digits
+- Based on foundational work by hdaniel@ualg.pt
 
 ## License
 
