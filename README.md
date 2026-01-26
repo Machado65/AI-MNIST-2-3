@@ -4,7 +4,7 @@ A Java implementation of a Multi-Layer Perceptron (MLP) neural network for binar
 
 ## Overview
 
-This project implements a fully connected feedforward neural network with backpropagation training for distinguishing between handwritten digits 2 and 3 from the MNIST dataset. The implementation includes data augmentation techniques, configurable network architectures, and threshold optimization for binary classification.
+This project implements a fully connected feedforward neural network with backpropagation training for distinguishing between handwritten digits 2 and 3 from the MNIST dataset. The implementation includes custom matrix operations, multiple activation functions, and data augmentation techniques.
 
 ## Features
 
@@ -77,6 +77,8 @@ git clone https://github.com/Machado65/AI-MNIST-2-3.git
 cd AI-MNIST-2-3
 ```
 ### Training Models
+
+> **⚠️ Disclaimer:** The `MLPConfig` and `DefaultMLPConfig` training processes may take some time to complete due to the neural network training and optimization procedures.
 
 **Default Configuration:**
 ```bash
