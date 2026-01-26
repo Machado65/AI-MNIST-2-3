@@ -76,19 +76,102 @@ To clone this repository, run:
 git clone https://github.com/Machado65/AI-MNIST-2-3.git
 cd AI-MNIST-2-3
 ```
+
 ### Training Models
 
 > **⚠️ Disclaimer:** The `MLPConfig` and `DefaultMLPConfig` training processes may take some time to complete due to the neural network training and optimization procedures.
 
-**Default Configuration:**
+#### **runConfig.sh - Hyperparameter Search**
+
+```bash
+./runConfig.sh
+```
+
+The `runConfig.sh` script executes the **MLPConfig** program, which is used for **hyperparameter search and configuration optimization**. This process:
+
+**Purpose:** Find the best MLP configuration through systematic experimentation.
+
+**Characteristics:**
+- **Multiple Seeds**: Tests various random seeds (42, 97, 123, 456, 789, 1337, 2023, 9999, 314159, 271828, etc.) to ensure result robustness
+- **Multiple Configurations**: Runs different network configurations (config0, config1, config2, etc.) with:
+  - Different architectures (number of neurons per layer)
+  - Different learning rates
+  - Different data augmentation techniques
+  - Different epochs and patience for early stopping
+- **Varied Augmentations**: Each configuration tests different combinations of:
+  - Gaussian Noise
+  - Elastic Deformation
+  - Image Rotation
+  - Combined Augmentations (1, 2, 3)
+- **Result Comparison**: Allows comparing multiple models to identify the best one
+
+**Example Configuration (config1):**
+```java
+- Architecture: [400, 256, 1] (input layer, hidden layer, output layer)
+- Learning rate: 0.002
+- Max epochs: 16000
+- Patience: 800
+- Activation functions: LeakyReLU (hidden layer), Sigmoid (output)
+- Augmentations: CombinedAugmentation2 + CombinedAugmentation3
+```
+
+**When to use:**
+- When you want to find the best configuration for your problem
+- During experimentation and development phase
+- To test new augmentation techniques or architectures
+
+---
+
+#### **runDefault.sh - Optimized Training**
+
 ```bash
 ./runDefault.sh
 ```
 
-**Custom Configuration:**
-```bash
-./runConfig.sh
-```
+The `runDefault.sh` script executes the **DefaultMLPConfig** program, which uses the **best configuration already found** during the search phase with `runConfig.sh`.
+
+**Purpose:** Train a final model with the optimized configuration.
+
+**Characteristics:**
+- **Single Configuration**: Uses only one pre-determined configuration (the best found)
+- **Fixed Seed**: Uses a specific seed (2023) for reproducibility
+- **Optimized Augmentations**: Applies the best augmentation techniques identified:
+  ```java
+  - CombinedAugmentation1: Gaussian noise (0.02), scaling (0.9-1.1)
+  - CombinedAugmentation2: Elastic deformation (sigma=6.0, repetitions=1)
+  - CombinedAugmentation3: Elastic deformation (sigma=6.0, alpha=2.0)
+  ```
+- **Optimized Architecture**:
+  ```java
+  - Layers: [400, 256, 1]
+  - Learning rate: 0.001
+  - Max epochs: 16000
+  - Patience: 800
+  - Activations: LeakyReLU + Sigmoid
+  ```
+- **Model Saving**: Saves the trained model to `src/ml/models/model.dat`
+- **Metrics Saving**: Saves MSE (Mean Squared Error) values to `mse_results/`
+
+**When to use:**
+- When you want to quickly train the final model
+- For production or final evaluation
+- When configurations have already been optimized
+
+---
+
+### Comparison: runConfig.sh vs runDefault.sh
+
+| Aspect | **runConfig.sh** | **runDefault.sh** |
+|---------|------------------|-------------------|
+| **Program** | `apps.MLPConfig` | `apps.DefaultMLPConfig` |
+| **Purpose** | Hyperparameter search | Training with best configuration |
+| **Seeds** | Multiple (14+ seeds) | Single (2023) |
+| **Configurations** | Multiple (config0-9) | One optimized |
+| **Execution time** | Very long (hours) | Moderate (minutes) |
+| **Output** | Comparison of multiple models | One final model |
+| **Use case** | Experimentation and development | Production |
+
+---
 
 ### Making Predictions
 
@@ -126,6 +209,7 @@ The input format should be CSV with 400 pixel values per line (20×20 images).
    - Gaussian noise injection
    - Image rotation
    - Pixel shifting
+   - Combined augmentations (1, 2, 3)
 
 ### Training Process
 
@@ -136,6 +220,28 @@ The input format should be CSV with 400 pixel values per line (20×20 images).
 5. Optimize classification threshold
 6. Evaluate on test set
 7. Save trained model
+
+## Configuration Details
+
+### TrainConfig Parameters
+
+The `TrainConfig` class contains the following parameters:
+
+- **Training Dataset** (`DataSet tr`): Features and labels for training
+- **Testing Dataset** (`DataSet te`): Features and labels for validation
+- **Learning Rate** (`double learningRate`): Step size for gradient descent (e.g., 0.001, 0.002)
+- **Epochs** (`int epochs`): Maximum number of training iterations (typically 16000)
+- **Patience** (`int patience`): Early stopping threshold (typically 800)
+- **Random Seed** (`Random rand`): For reproducible results
+
+### Augmentation Techniques
+
+1. **Gaussian Noise**: Adds random noise with standard deviation σ
+2. **Elastic Deformation**: Applies smooth distortions to images
+3. **Rotation**: Rotates images by random angles
+4. **Combined Augmentation 1**: Noise + scaling
+5. **Combined Augmentation 2**: Elastic deformation (single pass)
+6. **Combined Augmentation 3**: Elastic deformation (double pass)
 
 ## Input Format
 
@@ -171,6 +277,6 @@ This project is an academic implementation for educational purposes.
 ## Notes
 
 - The network specifically focuses on binary classification between digits 2 and 3
-- Default model path: `src/ml/models/example.dat`
+- Default model path: `src/ml/models/model.dat`
 - Input size: 400 features (20×20 pixel images)
 - Output: Binary classification (2 or 3)
