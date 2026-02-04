@@ -270,10 +270,6 @@ The implementation includes several optimization techniques:
 - Early stopping to prevent overfitting
 - Threshold optimization for binary classification accuracy
 
-## License
-
-This project is an academic implementation for educational purposes.
-
 ## Notes
 
 - The network specifically focuses on binary classification between digits 2 and 3
